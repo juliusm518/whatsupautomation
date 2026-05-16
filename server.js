@@ -180,66 +180,82 @@ async function handleApi(request, response) {
     return;
   }
 
+  if (request.method === "POST" && url.pathname === "/api/simulator/message") {
+    try {
+      const body = await readJson(request);
+      const result = await processIncomingMessages(body, { sendToWhatsApp: false });
+      sendJson(response, 200, result);
+    } catch (error) {
+      sendJson(response, error.statusCode || 400, { error: error.message || "Invalid simulator payload" });
+    }
+    return;
+  }
+
   if (request.method === "POST" && url.pathname === "/api/whatsapp/webhook") {
     try {
       const body = await readJson(request);
-      const activeWorkspace = supabaseConfigured() ? await loadWorkspaceFromSupabase() : workspace;
-      const incomingMessages = extractWhatsAppMessages(body, process.env.WHATSAPP_BUSINESS_ID || "tuition-hub");
-      const processed = [];
-
-      if (!incomingMessages.length) {
-        sendJson(response, 200, { ok: true, processed: 0 });
-        return;
-      }
-
-      for (const incoming of incomingMessages) {
-        const business = findBusiness(activeWorkspace.businesses, incoming.businessId);
-
-        if (!business) {
-          sendJson(response, 404, { error: `Business not found: ${incoming.businessId}` });
-          return;
-        }
-
-        const result = handleIncomingMessage({
-          business,
-          message: incoming
-        });
-        result.reply.text = await generateAiReply({
-          business,
-          customerMessage: incoming.text,
-          engineReply: result.reply.text
-        });
-        result.conversation.messages[1].text = result.reply.text;
-
-        if (incoming.customerName) {
-          result.conversation.customerName = incoming.customerName;
-          result.conversation.lead.name ||= incoming.customerName;
-        }
-
-        if (supabaseConfigured()) {
-          await saveConversationToSupabase(result.conversation);
-        } else {
-          workspace.conversations.unshift(result.conversation);
-        }
-
-        const delivery = body?.object === "whatsapp_business_account" && business.autoReplyEnabled
-          ? await sendWhatsAppText({
-            to: incoming.from,
-            text: result.reply.text
-          })
-          : { sent: false, skipped: true, reason: "Local simulator request" };
-
-        processed.push({ ...result, delivery });
-      }
-
-      sendJson(response, 200, processed.length === 1 ? processed[0] : { ok: true, processed: processed.length, results: processed });
+      const result = await processIncomingMessages(body, { sendToWhatsApp: body?.object === "whatsapp_business_account" });
+      sendJson(response, 200, result);
     } catch (error) {
-      sendJson(response, 400, { error: error.message || "Invalid webhook payload" });
+      sendJson(response, error.statusCode || 400, { error: error.message || "Invalid webhook payload" });
     }
     return;
   }
 
   sendJson(response, 404, { error: "API route not found" });
+}
+
+async function processIncomingMessages(body, { sendToWhatsApp }) {
+  const activeWorkspace = supabaseConfigured() ? await loadWorkspaceFromSupabase() : workspace;
+  const incomingMessages = extractWhatsAppMessages(body, process.env.WHATSAPP_BUSINESS_ID || "tuition-hub");
+  const processed = [];
+
+  if (!incomingMessages.length) {
+    return { ok: true, processed: 0 };
+  }
+
+  for (const incoming of incomingMessages) {
+    const business = findBusiness(activeWorkspace.businesses, incoming.businessId);
+
+    if (!business) {
+      const error = new Error(`Business not found: ${incoming.businessId}`);
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const result = handleIncomingMessage({
+      business,
+      message: incoming
+    });
+    result.reply.text = await generateAiReply({
+      business,
+      customerMessage: incoming.text,
+      engineReply: result.reply.text
+    });
+    result.conversation.messages[1].text = result.reply.text;
+
+    if (incoming.customerName) {
+      result.conversation.customerName = incoming.customerName;
+      result.conversation.lead.name ||= incoming.customerName;
+    }
+
+    if (supabaseConfigured()) {
+      await saveConversationToSupabase(result.conversation);
+    } else {
+      workspace.conversations.unshift(result.conversation);
+    }
+
+    const delivery = sendToWhatsApp && business.autoReplyEnabled
+      ? await sendWhatsAppText({
+        to: incoming.from,
+        text: result.reply.text
+      })
+      : { sent: false, skipped: true, reason: "Simulator request" };
+
+    processed.push({ ...result, delivery });
+  }
+
+  return processed.length === 1 ? processed[0] : { ok: true, processed: processed.length, results: processed };
 }
 
 const server = createServer(async (request, response) => {
