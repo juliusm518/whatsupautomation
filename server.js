@@ -144,7 +144,20 @@ async function generateAiReply({ business, customerMessage, engineReply }) {
   }
 
   const payload = await response.json();
-  return payload.output_text || engineReply;
+  return extractOpenAiText(payload) || engineReply;
+}
+
+function extractOpenAiText(payload) {
+  if (payload.output_text) {
+    return payload.output_text;
+  }
+
+  return (payload.output || [])
+    .flatMap((item) => item.content || [])
+    .filter((content) => content.type === "output_text" && content.text)
+    .map((content) => content.text)
+    .join("\n")
+    .trim();
 }
 
 async function handleApi(request, response) {
