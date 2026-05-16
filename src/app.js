@@ -257,11 +257,11 @@ function bindEvents() {
     });
   });
 
-  document.querySelector("#message-form").addEventListener("submit", (event) => {
+  document.querySelector("#message-form").addEventListener("submit", async (event) => {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     const business = currentBusiness();
-    const result = handleIncomingMessage({
+    const result = await runServerSimulator({
       business,
       message: {
         id: `conv-${crypto.randomUUID()}`,
@@ -314,6 +314,32 @@ function bindEvents() {
       saveWorkspace();
     });
   });
+}
+
+async function runServerSimulator({ business, message }) {
+  try {
+    const response = await fetch("/api/simulator/message", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        businessId: business.id,
+        id: message.id,
+        from: message.from,
+        text: message.text,
+        timestamp: new Date().toISOString()
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error("Simulator API failed");
+    }
+
+    return await response.json();
+  } catch {
+    return handleIncomingMessage({ business, message });
+  }
 }
 
 function getAnalytics(conversations) {
