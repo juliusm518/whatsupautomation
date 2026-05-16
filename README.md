@@ -46,6 +46,22 @@ Recommended Render settings:
 
 Do not add `.env` to GitHub. Put secrets directly into Render's environment variable settings.
 
+## Meta test number setup
+
+Use this path first before connecting BrightPath Tuition's real number.
+
+1. In Meta for Developers, create or open a WhatsApp app and use the test phone number.
+2. Add these Render environment variables:
+   - `WHATSAPP_VERIFY_TOKEN`: any private phrase you invent, for example `brightpath-test-2026`.
+   - `WHATSAPP_ACCESS_TOKEN`: the temporary access token from Meta's WhatsApp API setup page.
+   - `WHATSAPP_PHONE_NUMBER_ID`: the phone number ID shown beside Meta's test number.
+   - `WHATSAPP_BUSINESS_ID`: use `tuition-hub` for BrightPath Tuition.
+3. In Meta's webhook settings, use:
+   - Callback URL: `https://replypilot-whatsapp-automation.onrender.com/api/whatsapp/webhook`
+   - Verify token: the exact same value as `WHATSAPP_VERIFY_TOKEN`.
+4. Subscribe to WhatsApp `messages` webhook events.
+5. Add your personal phone number as an allowed test recipient in Meta, then send a WhatsApp message to Meta's test number.
+
 ## MVP Scope
 
 Included:
