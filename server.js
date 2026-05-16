@@ -105,6 +105,7 @@ async function serveStatic(request, response) {
 
 async function generateAiReply({ business, customerMessage, engineReply }) {
   if (!process.env.OPENAI_API_KEY) {
+    console.warn("OpenAI reply skipped: OPENAI_API_KEY is not configured");
     return engineReply;
   }
 
@@ -140,11 +141,19 @@ async function generateAiReply({ business, customerMessage, engineReply }) {
   });
 
   if (!response.ok) {
+    const errorPayload = await response.json().catch(() => ({}));
+    console.warn(`OpenAI reply failed: ${response.status} ${errorPayload.error?.message || response.statusText}`);
     return engineReply;
   }
 
   const payload = await response.json();
-  return extractOpenAiText(payload) || engineReply;
+  const aiText = extractOpenAiText(payload);
+  if (!aiText) {
+    console.warn("OpenAI reply failed: response did not include text output");
+    return engineReply;
+  }
+
+  return aiText;
 }
 
 function extractOpenAiText(payload) {
