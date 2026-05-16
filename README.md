@@ -29,6 +29,23 @@ SUPABASE_SERVICE_ROLE_KEY=...
 
 When those values are present, `/api/workspace` reads businesses, FAQs, conversations, messages, and leads from Supabase, and `/api/whatsapp/webhook` stores new conversations there. Without them, the app stays in local demo mode.
 
+## Deploy on Render
+
+This repo includes `render.yaml` for a Render web service.
+
+Recommended Render settings:
+
+- Runtime: Node
+- Build command: `npm run build`
+- Start command: `npm start`
+- Environment variables:
+  - `SUPABASE_URL`
+  - `SUPABASE_SERVICE_ROLE_KEY`
+  - `OPENAI_API_KEY` when ready
+  - WhatsApp Cloud API values when ready
+
+Do not add `.env` to GitHub. Put secrets directly into Render's environment variable settings.
+
 ## MVP Scope
 
 Included:
