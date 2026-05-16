@@ -12,6 +12,11 @@ import {
   saveConversationToSupabase,
   supabaseConfigured
 } from "./src/storage/supabaseStore.js";
+import {
+  extractWhatsAppMessages,
+  sendWhatsAppText,
+  verifyWhatsAppWebhook
+} from "./src/integrations/whatsappCloud.js";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const publicRoot = __dirname;
@@ -161,36 +166,73 @@ async function handleApi(request, response) {
     return;
   }
 
+  if (request.method === "GET" && url.pathname === "/api/whatsapp/webhook") {
+    const verification = verifyWhatsAppWebhook(url, process.env.WHATSAPP_VERIFY_TOKEN || "");
+
+    if (verification.verified) {
+      response.writeHead(200, { "content-type": "text/plain; charset=utf-8" });
+      response.end(verification.challenge);
+      return;
+    }
+
+    response.writeHead(403, { "content-type": "text/plain; charset=utf-8" });
+    response.end("Webhook verification failed");
+    return;
+  }
+
   if (request.method === "POST" && url.pathname === "/api/whatsapp/webhook") {
     try {
       const body = await readJson(request);
-      const business = findBusiness(workspace.businesses, body.businessId);
+      const activeWorkspace = supabaseConfigured() ? await loadWorkspaceFromSupabase() : workspace;
+      const incomingMessages = extractWhatsAppMessages(body, process.env.WHATSAPP_BUSINESS_ID || "tuition-hub");
+      const processed = [];
 
-      if (!business) {
-        sendJson(response, 404, { error: "Business not found" });
+      if (!incomingMessages.length) {
+        sendJson(response, 200, { ok: true, processed: 0 });
         return;
       }
 
-      const result = handleIncomingMessage({
-        business,
-        message: {
-          id: body.id,
-          from: body.from,
-          text: body.text,
-          timestamp: body.timestamp
-        }
-      });
-      result.reply.text = await generateAiReply({
-        business,
-        customerMessage: body.text,
-        engineReply: result.reply.text
-      });
+      for (const incoming of incomingMessages) {
+        const business = findBusiness(activeWorkspace.businesses, incoming.businessId);
 
-      workspace.conversations.unshift(result.conversation);
-      if (supabaseConfigured()) {
-        await saveConversationToSupabase(result.conversation);
+        if (!business) {
+          sendJson(response, 404, { error: `Business not found: ${incoming.businessId}` });
+          return;
+        }
+
+        const result = handleIncomingMessage({
+          business,
+          message: incoming
+        });
+        result.reply.text = await generateAiReply({
+          business,
+          customerMessage: incoming.text,
+          engineReply: result.reply.text
+        });
+        result.conversation.messages[1].text = result.reply.text;
+
+        if (incoming.customerName) {
+          result.conversation.customerName = incoming.customerName;
+          result.conversation.lead.name ||= incoming.customerName;
+        }
+
+        if (supabaseConfigured()) {
+          await saveConversationToSupabase(result.conversation);
+        } else {
+          workspace.conversations.unshift(result.conversation);
+        }
+
+        const delivery = body?.object === "whatsapp_business_account" && business.autoReplyEnabled
+          ? await sendWhatsAppText({
+            to: incoming.from,
+            text: result.reply.text
+          })
+          : { sent: false, skipped: true, reason: "Local simulator request" };
+
+        processed.push({ ...result, delivery });
       }
-      sendJson(response, 200, result);
+
+      sendJson(response, 200, processed.length === 1 ? processed[0] : { ok: true, processed: processed.length, results: processed });
     } catch (error) {
       sendJson(response, 400, { error: error.message || "Invalid webhook payload" });
     }
