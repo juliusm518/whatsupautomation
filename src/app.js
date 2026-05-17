@@ -13,7 +13,8 @@ const state = {
   workspace,
   activeBusinessId: workspace.businesses[0].id,
   activeConversationId: workspace.conversations[0]?.id || null,
-  syncStatus: location.protocol === "file:" ? "Local preview" : "Loading server data"
+  syncStatus: location.protocol === "file:" ? "Local preview" : "Loading server data",
+  saveStatus: location.protocol === "file:" ? "Local preview only" : "Ready"
 };
 
 const icons = {
@@ -308,6 +309,9 @@ function businessSettingsForm(business) {
         <legend>Open days</legend>
         ${dayOptions(business.businessHours.days)}
       </fieldset>
+      <div class="save-feedback ${saveFeedbackClass()}" role="status" aria-live="polite">
+        <span>${state.saveStatus}</span>
+      </div>
       <button type="submit" class="primary-button">${icons.shield}<span>Save business settings</span></button>
     </form>
   `;
@@ -458,7 +462,9 @@ function bindEvents() {
     business.businessHours.open = form.get("open") || business.businessHours.open;
     business.businessHours.close = form.get("close") || business.businessHours.close;
     business.businessHours.days = form.getAll("days").map(Number).sort((a, b) => a - b);
+    state.saveStatus = "Saving...";
     saveWorkspace();
+    render();
     await saveBusinessSettings(business, submitButton);
     render();
     location.hash = "settings";
@@ -567,6 +573,23 @@ function saveWorkspace() {
   localStorage.setItem(storageKey, JSON.stringify(workspace));
 }
 
+function saveFeedbackClass() {
+  const normalized = state.saveStatus.toLowerCase();
+  if (normalized.includes("saving")) {
+    return "saving";
+  }
+
+  if (normalized.includes("saved") || normalized.includes("synced")) {
+    return "saved";
+  }
+
+  if (normalized.includes("could not") || normalized.includes("fallback")) {
+    return "failed";
+  }
+
+  return "";
+}
+
 async function refreshWorkspaceFromServer() {
   if (location.protocol === "file:") {
     return;
@@ -601,10 +624,12 @@ async function refreshWorkspaceFromServer() {
     }
 
     state.syncStatus = "Synced from server";
+    state.saveStatus = "Ready";
     saveWorkspace();
     render();
   } catch {
     state.syncStatus = "Local fallback";
+    state.saveStatus = "Could not refresh from server";
     render();
   }
 }
@@ -631,11 +656,21 @@ async function saveBusinessSettings(business, submitButton) {
     const payload = await response.json();
     Object.assign(business, payload.business);
     state.syncStatus = "Synced from server";
+    state.saveStatus = `Saved ${formatStatusTime(new Date())}`;
     saveWorkspace();
   } catch {
     state.syncStatus = "Local fallback";
+    state.saveStatus = "Could not save to server";
     console.warn("Business settings were saved locally, but the server could not be updated.");
   }
+}
+
+function formatStatusTime(date) {
+  return new Intl.DateTimeFormat("en-SG", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit"
+  }).format(date);
 }
 
 function updateBusinessSummary() {
