@@ -151,7 +151,7 @@ function render() {
               <p class="eyebrow">Business Settings</p>
               <h2>Profile and contact</h2>
             </div>
-            <span class="pill">Saved locally</span>
+            <span class="pill">Saved to server</span>
           </div>
           ${businessSettingsForm(business)}
         </div>
