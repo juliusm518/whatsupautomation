@@ -51,6 +51,7 @@ function render() {
         <a href="#inbox">${icons.message}<span>Inbox</span></a>
         <a href="#automation">${icons.bolt}<span>Automation</span></a>
         <a href="#analytics">${icons.chart}<span>Analytics</span></a>
+        <a href="#settings">${icons.user}<span>Settings</span></a>
       </nav>
       <div class="connection-card">
         <span class="status-dot"></span>
@@ -139,6 +140,31 @@ function render() {
           </div>
           <div class="faq-list">
             ${business.faqs.map((faq, index) => faqEditor(faq, index)).join("")}
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-grid" id="settings">
+        <div class="panel settings-panel">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Business Settings</p>
+              <h2>Profile and contact</h2>
+            </div>
+            <span class="pill">Saved locally</span>
+          </div>
+          ${businessSettingsForm(business)}
+        </div>
+
+        <div class="panel settings-panel">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Knowledge Settings</p>
+              <h2>FAQ editor</h2>
+            </div>
+          </div>
+          <div class="faq-settings-list">
+            ${business.faqs.map((faq, index) => faqSettingsEditor(faq, index)).join("")}
           </div>
         </div>
       </section>
@@ -238,6 +264,86 @@ function faqEditor(faq, index) {
   `;
 }
 
+function businessSettingsForm(business) {
+  return `
+    <form class="settings-form" id="business-settings-form">
+      <div class="form-grid">
+        <label>
+          Business name
+          <input name="name" value="${escapeAttribute(business.name)}" />
+        </label>
+        <label>
+          Business type
+          <input name="type" value="${escapeAttribute(business.type)}" />
+        </label>
+        <label>
+          Owner or operator
+          <input name="owner" value="${escapeAttribute(business.owner)}" />
+        </label>
+        <label>
+          WhatsApp display number
+          <input name="whatsappNumber" value="${escapeAttribute(business.whatsappNumber)}" autocomplete="tel" />
+        </label>
+        <label>
+          Appointment label
+          <input name="appointmentLabel" value="${escapeAttribute(business.appointmentLabel || "")}" />
+        </label>
+        <label>
+          Time zone
+          <input name="timeZone" value="${escapeAttribute(business.businessHours.timeZone || "Asia/Singapore")}" />
+        </label>
+        <label>
+          Opens
+          <input name="open" type="time" value="${business.businessHours.open}" />
+        </label>
+        <label>
+          Closes
+          <input name="close" type="time" value="${business.businessHours.close}" />
+        </label>
+      </div>
+      <fieldset class="days-fieldset">
+        <legend>Open days</legend>
+        ${dayOptions(business.businessHours.days)}
+      </fieldset>
+      <button type="submit" class="primary-button">${icons.shield}<span>Save business settings</span></button>
+    </form>
+  `;
+}
+
+function dayOptions(activeDays = []) {
+  const days = [
+    ["0", "Sun"],
+    ["1", "Mon"],
+    ["2", "Tue"],
+    ["3", "Wed"],
+    ["4", "Thu"],
+    ["5", "Fri"],
+    ["6", "Sat"]
+  ];
+
+  return days.map(([value, label]) => `
+    <label class="day-chip">
+      <input type="checkbox" name="days" value="${value}" ${activeDays.includes(Number(value)) ? "checked" : ""} />
+      <span>${label}</span>
+    </label>
+  `).join("");
+}
+
+function faqSettingsEditor(faq, index) {
+  return `
+    <div class="faq-settings-item">
+      <label>
+        Question
+        <input data-faq-question-index="${index}" value="${escapeAttribute(faq.question)}" />
+      </label>
+      <label>
+        Answer
+        <textarea data-faq-answer-index="${index}" rows="4">${escapeHtml(faq.answer)}</textarea>
+      </label>
+    </div>
+  `;
+}
+
 function emptyState(message) {
   return `<div class="empty-state">${icons.message}<p>${message}</p></div>`;
 }
@@ -308,9 +414,42 @@ function bindEvents() {
     saveWorkspace();
   });
 
+  document.querySelector("#business-settings-form").addEventListener("submit", (event) => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const business = currentBusiness();
+    business.name = cleanValue(form.get("name"), business.name);
+    business.type = cleanValue(form.get("type"), business.type);
+    business.owner = cleanValue(form.get("owner"), business.owner);
+    business.whatsappNumber = cleanValue(form.get("whatsappNumber"), business.whatsappNumber);
+    business.appointmentLabel = cleanValue(form.get("appointmentLabel"), business.appointmentLabel);
+    business.businessHours.timeZone = cleanValue(form.get("timeZone"), business.businessHours.timeZone);
+    business.businessHours.open = form.get("open") || business.businessHours.open;
+    business.businessHours.close = form.get("close") || business.businessHours.close;
+    business.businessHours.days = form.getAll("days").map(Number).sort((a, b) => a - b);
+    saveWorkspace();
+    render();
+    location.hash = "settings";
+  });
+
   document.querySelectorAll("[data-faq-index]").forEach((textarea) => {
     textarea.addEventListener("input", () => {
       currentBusiness().faqs[Number(textarea.dataset.faqIndex)].answer = textarea.value;
+      saveWorkspace();
+    });
+  });
+
+  document.querySelectorAll("[data-faq-question-index]").forEach((input) => {
+    input.addEventListener("input", () => {
+      currentBusiness().faqs[Number(input.dataset.faqQuestionIndex)].question = input.value;
+      saveWorkspace();
+      updateBusinessSummary();
+    });
+  });
+
+  document.querySelectorAll("[data-faq-answer-index]").forEach((textarea) => {
+    textarea.addEventListener("input", () => {
+      currentBusiness().faqs[Number(textarea.dataset.faqAnswerIndex)].answer = textarea.value;
       saveWorkspace();
     });
   });
@@ -392,6 +531,29 @@ function loadWorkspace() {
 
 function saveWorkspace() {
   localStorage.setItem(storageKey, JSON.stringify(workspace));
+}
+
+function updateBusinessSummary() {
+  document.querySelectorAll("[data-faq-index]").forEach((textarea) => {
+    const faq = currentBusiness().faqs[Number(textarea.dataset.faqIndex)];
+    textarea.value = faq.answer;
+  });
+}
+
+function cleanValue(value, fallback) {
+  const cleaned = String(value || "").trim();
+  return cleaned || fallback;
+}
+
+function escapeHtml(value) {
+  return String(value || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
+}
+
+function escapeAttribute(value) {
+  return escapeHtml(value).replaceAll('"', "&quot;");
 }
 
 window.ReplyPilotDebug = {
