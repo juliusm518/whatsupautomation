@@ -104,6 +104,39 @@ export async function saveConversationToSupabase(conversation) {
   });
 }
 
+export async function saveBusinessSettingsToSupabase(business) {
+  await supabaseRequest(`${SUPABASE_TABLES.businesses}?id=eq.${encodeURIComponent(business.id)}`, "", {
+    method: "PATCH",
+    body: {
+      name: business.name,
+      type: business.type,
+      owner_name: business.owner,
+      whatsapp_number: business.whatsappNumber,
+      appointment_label: business.appointmentLabel,
+      auto_reply_enabled: business.autoReplyEnabled,
+      escalation_enabled: business.escalationEnabled,
+      business_hours: business.businessHours,
+      updated_at: new Date().toISOString()
+    }
+  });
+
+  await supabaseRequest(`${SUPABASE_TABLES.faqs}?business_id=eq.${encodeURIComponent(business.id)}`, "", {
+    method: "DELETE"
+  });
+
+  if (business.faqs.length) {
+    await supabaseRequest(SUPABASE_TABLES.faqs, "", {
+      method: "POST",
+      body: business.faqs.map((faq, index) => ({
+        business_id: business.id,
+        question: faq.question,
+        answer: faq.answer,
+        sort_order: index + 1
+      }))
+    });
+  }
+}
+
 async function supabaseRequest(table, query = "", options = {}) {
   const url = `${process.env.SUPABASE_URL}/rest/v1/${table}${query}`;
   const response = await fetch(url, {
