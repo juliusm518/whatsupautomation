@@ -70,6 +70,7 @@ svg {
 .connection-card,
 .nav a,
 .primary-button,
+.secondary-button,
 .icon-button,
 .metric-card,
 .hours-card,
@@ -509,6 +510,42 @@ h2 {
   background: var(--brand);
   color: #fff;
   font-weight: 800;
+}
+
+.secondary-button,
+.danger-button {
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  font-weight: 800;
+}
+
+.secondary-button {
+  justify-content: center;
+  gap: 8px;
+  padding: 0 12px;
+  color: var(--brand-dark);
+}
+
+.secondary-button:hover {
+  background: var(--mint);
+}
+
+.danger-button {
+  align-self: end;
+  padding: 0 12px;
+  color: #b43f2d;
+}
+
+.danger-button:hover {
+  background: #ffe9df;
+}
+
+.faq-settings-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
 }
 
 .toggle-row {
