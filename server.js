@@ -95,7 +95,9 @@ async function serveStatic(request, response) {
     const file = await readFile(filePath);
     response.writeHead(200, {
       "content-type": mimeTypes[extname(filePath)] || "application/octet-stream",
-      "cache-control": filePath.endsWith("index.html") ? "no-store" : "public, max-age=300"
+      "cache-control": filePath.endsWith(".html") || filePath.endsWith(".js") || filePath.endsWith(".css")
+        ? "no-store"
+        : "public, max-age=300"
     });
     response.end(file);
   } catch {
