@@ -222,7 +222,8 @@ h2 {
 
 .metrics,
 .workspace-grid,
-.automation-grid {
+.automation-grid,
+.settings-grid {
   display: grid;
   gap: 16px;
 }
@@ -270,6 +271,11 @@ h2 {
 
 .automation-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: 16px;
+}
+
+.settings-grid {
+  grid-template-columns: minmax(360px, 0.9fr) minmax(420px, 1.1fr);
 }
 
 .panel {
@@ -415,17 +421,83 @@ h2 {
 
 .form-stack,
 .settings,
-.faq-list {
+.faq-list,
+.settings-form,
+.faq-settings-list {
   display: grid;
   gap: 14px;
 }
 
 .form-stack label,
-.faq-item label {
+.faq-item label,
+.settings-form label,
+.faq-settings-item label {
   display: grid;
   gap: 7px;
   color: var(--muted);
   font-weight: 700;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.days-fieldset {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.days-fieldset legend {
+  padding: 0 6px;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.day-chip {
+  position: relative;
+  display: inline-flex;
+}
+
+.day-chip input {
+  position: absolute;
+  opacity: 0;
+}
+
+.day-chip span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 52px;
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+  color: var(--ink);
+  font-weight: 800;
+}
+
+.day-chip input:checked + span {
+  border-color: rgba(15, 143, 101, 0.45);
+  background: var(--mint);
+  color: var(--brand-dark);
+}
+
+.faq-settings-item {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
 }
 
 .primary-button {
@@ -528,11 +600,12 @@ h2 {
 
   .nav {
     grid-column: 1 / -1;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
   }
 
   .metrics,
-  .automation-grid {
+  .automation-grid,
+  .settings-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -550,6 +623,8 @@ h2 {
   .sidebar,
   .metrics,
   .automation-grid,
+  .settings-grid,
+  .form-grid,
   .nav {
     grid-template-columns: 1fr;
   }
