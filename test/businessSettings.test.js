@@ -10,5 +10,7 @@ test("dashboard includes editable business settings controls", async () => {
   assert.match(source, /name="whatsappNumber"/);
   assert.match(source, /name="appointmentLabel"/);
   assert.match(source, /data-faq-question-index/);
+  assert.match(source, /add-faq-button/);
+  assert.match(source, /data-delete-faq-index/);
   assert.match(source, /Save business settings/);
 });
