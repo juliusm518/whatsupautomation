@@ -8,11 +8,12 @@ import {
 } from "./core/automationEngine.js";
 
 const storageKey = "whatsapp-auto-reply-saas-v1";
-const workspace = loadWorkspace();
+let workspace = loadWorkspace();
 const state = {
   workspace,
   activeBusinessId: workspace.businesses[0].id,
-  activeConversationId: workspace.conversations[0]?.id || null
+  activeConversationId: workspace.conversations[0]?.id || null,
+  syncStatus: location.protocol === "file:" ? "Local preview" : "Loading server data"
 };
 
 const icons = {
@@ -26,6 +27,7 @@ const icons = {
 
 const app = document.querySelector("#app");
 render();
+refreshWorkspaceFromServer();
 
 function render() {
   const business = currentBusiness();
@@ -151,7 +153,7 @@ function render() {
               <p class="eyebrow">Business Settings</p>
               <h2>Profile and contact</h2>
             </div>
-            <span class="pill">Saved to server</span>
+            <span class="pill">${state.syncStatus}</span>
           </div>
           ${businessSettingsForm(business)}
         </div>
@@ -561,7 +563,50 @@ function loadWorkspace() {
 }
 
 function saveWorkspace() {
+  state.workspace = workspace;
   localStorage.setItem(storageKey, JSON.stringify(workspace));
+}
+
+async function refreshWorkspaceFromServer() {
+  if (location.protocol === "file:") {
+    return;
+  }
+
+  try {
+    const response = await fetch("/api/workspace", {
+      headers: {
+        accept: "application/json"
+      },
+      cache: "no-store"
+    });
+
+    if (!response.ok) {
+      throw new Error("Workspace API failed");
+    }
+
+    const serverWorkspace = await response.json();
+    if (!Array.isArray(serverWorkspace.businesses) || !serverWorkspace.businesses.length) {
+      throw new Error("Workspace API returned no businesses");
+    }
+
+    workspace = serverWorkspace;
+    state.workspace = workspace;
+    if (!workspace.businesses.some((business) => business.id === state.activeBusinessId)) {
+      state.activeBusinessId = workspace.businesses[0].id;
+    }
+
+    const conversations = currentConversations();
+    if (!conversations.some((conversation) => conversation.id === state.activeConversationId)) {
+      state.activeConversationId = conversations[0]?.id || null;
+    }
+
+    state.syncStatus = "Synced from server";
+    saveWorkspace();
+    render();
+  } catch {
+    state.syncStatus = "Local fallback";
+    render();
+  }
 }
 
 async function saveBusinessSettings(business, submitButton) {
@@ -585,8 +630,10 @@ async function saveBusinessSettings(business, submitButton) {
 
     const payload = await response.json();
     Object.assign(business, payload.business);
+    state.syncStatus = "Synced from server";
     saveWorkspace();
   } catch {
+    state.syncStatus = "Local fallback";
     console.warn("Business settings were saved locally, but the server could not be updated.");
   }
 }
