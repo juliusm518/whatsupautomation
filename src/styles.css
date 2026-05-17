@@ -292,6 +292,14 @@ h2 {
   margin-bottom: 16px;
 }
 
+.sync-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .icon-button {
   justify-content: center;
   width: 40px;
