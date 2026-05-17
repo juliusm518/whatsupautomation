@@ -9,6 +9,7 @@ import {
 } from "./src/core/automationEngine.js";
 import {
   loadWorkspaceFromSupabase,
+  saveBusinessSettingsToSupabase,
   saveConversationToSupabase,
   supabaseConfigured
 } from "./src/storage/supabaseStore.js";
@@ -169,6 +170,49 @@ function extractOpenAiText(payload) {
     .trim();
 }
 
+function sanitizeBusinessSettings(input, fallback) {
+  const source = input || {};
+  const hours = source.businessHours || {};
+  const fallbackHours = fallback.businessHours || {};
+  const days = Array.isArray(hours.days)
+    ? hours.days.map(Number).filter((day) => Number.isInteger(day) && day >= 0 && day <= 6)
+    : fallbackHours.days;
+
+  return {
+    ...fallback,
+    name: cleanText(source.name, fallback.name),
+    type: cleanText(source.type, fallback.type),
+    owner: cleanText(source.owner, fallback.owner),
+    whatsappNumber: cleanText(source.whatsappNumber, fallback.whatsappNumber),
+    appointmentLabel: cleanText(source.appointmentLabel, fallback.appointmentLabel),
+    autoReplyEnabled: typeof source.autoReplyEnabled === "boolean" ? source.autoReplyEnabled : fallback.autoReplyEnabled,
+    escalationEnabled: typeof source.escalationEnabled === "boolean" ? source.escalationEnabled : fallback.escalationEnabled,
+    businessHours: {
+      timeZone: cleanText(hours.timeZone, fallbackHours.timeZone || "Asia/Singapore"),
+      days: days?.length ? [...new Set(days)].sort((a, b) => a - b) : fallbackHours.days,
+      open: isTimeValue(hours.open) ? hours.open : fallbackHours.open,
+      close: isTimeValue(hours.close) ? hours.close : fallbackHours.close
+    },
+    faqs: Array.isArray(source.faqs)
+      ? source.faqs
+        .map((faq) => ({
+          question: cleanText(faq.question, ""),
+          answer: cleanText(faq.answer, "")
+        }))
+        .filter((faq) => faq.question && faq.answer)
+      : fallback.faqs
+  };
+}
+
+function cleanText(value, fallback) {
+  const cleaned = String(value || "").trim();
+  return cleaned || fallback;
+}
+
+function isTimeValue(value) {
+  return typeof value === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
+}
+
 async function handleApi(request, response) {
   const url = new URL(request.url, `http://${request.headers.host}`);
 
@@ -213,6 +257,34 @@ async function handleApi(request, response) {
     return;
   }
 
+  const businessSettingsMatch = url.pathname.match(/^\/api\/businesses\/([^/]+)\/settings$/);
+  if (request.method === "PUT" && businessSettingsMatch) {
+    try {
+      const body = await readJson(request);
+      const activeWorkspace = supabaseConfigured() ? await loadWorkspaceFromSupabase() : workspace;
+      const existingBusiness = findBusiness(activeWorkspace.businesses, decodeURIComponent(businessSettingsMatch[1]));
+
+      if (!existingBusiness) {
+        sendJson(response, 404, { error: "Business not found" });
+        return;
+      }
+
+      const business = sanitizeBusinessSettings(body.business, existingBusiness);
+
+      if (supabaseConfigured()) {
+        await saveBusinessSettingsToSupabase(business);
+      } else {
+        const index = workspace.businesses.findIndex((item) => item.id === business.id);
+        workspace.businesses[index] = business;
+      }
+
+      sendJson(response, 200, { ok: true, business });
+    } catch (error) {
+      sendJson(response, error.statusCode || 400, { error: error.message || "Invalid business settings payload" });
+    }
+    return;
+  }
+
   if (request.method === "POST" && url.pathname === "/api/whatsapp/webhook") {
     try {
       const body = await readJson(request);
@@ -237,12 +309,16 @@ async function processIncomingMessages(body, { sendToWhatsApp }) {
   }
 
   for (const incoming of incomingMessages) {
-    const business = findBusiness(activeWorkspace.businesses, incoming.businessId);
+    let business = findBusiness(activeWorkspace.businesses, incoming.businessId);
 
     if (!business) {
       const error = new Error(`Business not found: ${incoming.businessId}`);
       error.statusCode = 404;
       throw error;
+    }
+
+    if (!sendToWhatsApp && body.businessSnapshot?.id === business.id) {
+      business = sanitizeBusinessSettings(body.businessSnapshot, business);
     }
 
     const result = handleIncomingMessage({
