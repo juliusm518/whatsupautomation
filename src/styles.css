@@ -462,6 +462,36 @@ h2 {
   font-weight: 800;
 }
 
+.save-feedback {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.save-feedback.saving {
+  border-color: rgba(55, 127, 208, 0.35);
+  background: #edf4ff;
+  color: #174b88;
+}
+
+.save-feedback.saved {
+  border-color: rgba(15, 143, 101, 0.35);
+  background: var(--mint);
+  color: var(--brand-dark);
+}
+
+.save-feedback.failed {
+  border-color: rgba(232, 111, 95, 0.35);
+  background: #ffe9df;
+  color: #b43f2d;
+}
+
 .day-chip {
   position: relative;
   display: inline-flex;
