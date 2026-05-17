@@ -162,6 +162,7 @@ function render() {
               <p class="eyebrow">Knowledge Settings</p>
               <h2>FAQ editor</h2>
             </div>
+            <button class="secondary-button" id="add-faq-button" type="button">${icons.bolt}<span>Add FAQ</span></button>
           </div>
           <div class="faq-settings-list">
             ${business.faqs.map((faq, index) => faqSettingsEditor(faq, index)).join("")}
@@ -332,10 +333,13 @@ function dayOptions(activeDays = []) {
 function faqSettingsEditor(faq, index) {
   return `
     <div class="faq-settings-item">
-      <label>
-        Question
-        <input data-faq-question-index="${index}" value="${escapeAttribute(faq.question)}" />
-      </label>
+      <div class="faq-settings-header">
+        <label>
+          Question
+          <input data-faq-question-index="${index}" value="${escapeAttribute(faq.question)}" />
+        </label>
+        <button class="danger-button" data-delete-faq-index="${index}" type="button">Delete</button>
+      </div>
       <label>
         Answer
         <textarea data-faq-answer-index="${index}" rows="4">${escapeHtml(faq.answer)}</textarea>
@@ -412,6 +416,30 @@ function bindEvents() {
   document.querySelector("#escalation-toggle").addEventListener("change", (event) => {
     currentBusiness().escalationEnabled = event.target.checked;
     saveWorkspace();
+  });
+
+  document.querySelector("#add-faq-button").addEventListener("click", () => {
+    currentBusiness().faqs.push({
+      question: "New customer question",
+      answer: "Add the answer you want ReplyPilot to use."
+    });
+    saveWorkspace();
+    render();
+    location.hash = "settings";
+  });
+
+  document.querySelectorAll("[data-delete-faq-index]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const business = currentBusiness();
+      if (business.faqs.length <= 1) {
+        return;
+      }
+
+      business.faqs.splice(Number(button.dataset.deleteFaqIndex), 1);
+      saveWorkspace();
+      render();
+      location.hash = "settings";
+    });
   });
 
   document.querySelector("#business-settings-form").addEventListener("submit", (event) => {
