@@ -14,6 +14,8 @@ test("dashboard includes editable business settings controls", async () => {
   assert.match(source, /data-delete-faq-index/);
   assert.match(source, /saveBusinessSettings/);
   assert.match(source, /refreshWorkspaceFromServer/);
+  assert.match(source, /refresh-workspace-button/);
+  assert.match(source, /Refreshing from server/);
   assert.match(source, /\/api\/workspace/);
   assert.match(source, /Synced from server/);
   assert.match(source, /save-feedback/);
