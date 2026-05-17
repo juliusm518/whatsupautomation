@@ -442,8 +442,9 @@ function bindEvents() {
     });
   });
 
-  document.querySelector("#business-settings-form").addEventListener("submit", (event) => {
+  document.querySelector("#business-settings-form").addEventListener("submit", async (event) => {
     event.preventDefault();
+    const submitButton = event.currentTarget.querySelector("button[type='submit']");
     const form = new FormData(event.currentTarget);
     const business = currentBusiness();
     business.name = cleanValue(form.get("name"), business.name);
@@ -456,6 +457,7 @@ function bindEvents() {
     business.businessHours.close = form.get("close") || business.businessHours.close;
     business.businessHours.days = form.getAll("days").map(Number).sort((a, b) => a - b);
     saveWorkspace();
+    await saveBusinessSettings(business, submitButton);
     render();
     location.hash = "settings";
   });
@@ -492,6 +494,7 @@ async function runServerSimulator({ business, message }) {
       },
       body: JSON.stringify({
         businessId: business.id,
+        businessSnapshot: business,
         id: message.id,
         from: message.from,
         text: message.text,
@@ -559,6 +562,33 @@ function loadWorkspace() {
 
 function saveWorkspace() {
   localStorage.setItem(storageKey, JSON.stringify(workspace));
+}
+
+async function saveBusinessSettings(business, submitButton) {
+  try {
+    if (submitButton) {
+      submitButton.disabled = true;
+      submitButton.querySelector("span").textContent = "Saving...";
+    }
+
+    const response = await fetch(`/api/businesses/${encodeURIComponent(business.id)}/settings`, {
+      method: "PUT",
+      headers: {
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({ business })
+    });
+
+    if (!response.ok) {
+      throw new Error("Settings API failed");
+    }
+
+    const payload = await response.json();
+    Object.assign(business, payload.business);
+    saveWorkspace();
+  } catch {
+    console.warn("Business settings were saved locally, but the server could not be updated.");
+  }
 }
 
 function updateBusinessSummary() {
