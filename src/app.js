@@ -150,11 +150,14 @@ function render() {
       <section class="settings-grid" id="settings">
         <div class="panel settings-panel">
           <div class="panel-header">
-            <div>
-              <p class="eyebrow">Business Settings</p>
-              <h2>Profile and contact</h2>
+          <div>
+            <p class="eyebrow">Business Settings</p>
+            <h2>Profile and contact</h2>
+          </div>
+            <div class="sync-actions">
+              <span class="pill">${state.syncStatus}</span>
+              <button class="secondary-button" id="refresh-workspace-button" type="button">${icons.clock}<span>Refresh</span></button>
             </div>
-            <span class="pill">${state.syncStatus}</span>
           </div>
           ${businessSettingsForm(business)}
         </div>
@@ -364,6 +367,14 @@ function bindEvents() {
     state.activeConversationId = currentConversations()[0]?.id || null;
     saveWorkspace();
     render();
+  });
+
+  document.querySelector("#refresh-workspace-button").addEventListener("click", async () => {
+    state.syncStatus = "Refreshing...";
+    state.saveStatus = "Refreshing from server...";
+    render();
+    await refreshWorkspaceFromServer();
+    location.hash = "settings";
   });
 
   document.querySelectorAll("[data-conversation-id]").forEach((button) => {
