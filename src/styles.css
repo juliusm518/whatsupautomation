@@ -608,6 +608,12 @@ h2 {
   gap: 12px;
 }
 
+.knowledge-actions {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
 .toggle-row {
   justify-content: space-between;
   min-height: 48px;
