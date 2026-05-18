@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   createDemoWorkspace,
+  createStarterConversation,
   detectIntent,
   extractLead,
   handleIncomingMessage,
@@ -72,4 +73,13 @@ test("keeps multi-business knowledge separated", () => {
   assert.equal(detectIntent("How much is aircon servicing?", aircon), "lead");
   assert.equal(matchFaq("How much is aircon servicing?", aircon.faqs).answer.includes("$35"), true);
   assert.equal(matchFaq("How much is aircon servicing?", tuition.faqs)?.answer.includes("$35"), undefined);
+});
+
+test("creates a clean starter conversation for a selected business", () => {
+  const conversation = createStarterConversation(tuition, new Date("2026-05-18T02:00:00.000Z"));
+
+  assert.equal(conversation.businessId, tuition.id);
+  assert.equal(conversation.customerPhone, "+65 9000 1122");
+  assert.equal(conversation.messages.length, 2);
+  assert.match(conversation.summary, /Tuition|classes|located/i);
 });
