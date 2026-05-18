@@ -1,5 +1,6 @@
 import {
   createDemoWorkspace,
+  createStarterConversation,
   detectIntent,
   extractLead,
   handleIncomingMessage,
@@ -16,7 +17,9 @@ const state = {
   syncStatus: location.protocol === "file:" ? "Local preview" : "Loading server data",
   saveStatus: location.protocol === "file:" ? "Local preview only" : "Ready",
   knowledgeStatus: location.protocol === "file:" ? "Local preview only" : "Saved on server",
+  busyAction: "",
   faqDirty: false,
+  toast: null,
   testPreview: {
     status: "Ready",
     question: "Hi, what is your schedule and can I book a trial lesson tomorrow?",
@@ -30,7 +33,8 @@ const icons = {
   user: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Zm-8 9a8 8 0 0 1 16 0H4Z"/></svg>`,
   clock: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22a10 10 0 1 1 0-20 10 10 0 0 1 0 20Zm1-10.4V6h-2v7h6v-2h-4Z"/></svg>`,
   chart: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19h16v2H2V3h2v16Zm3-2V9h3v8H7Zm5 0V5h3v12h-3Zm5 0v-6h3v6h-3Z"/></svg>`,
-  shield: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 4 5v6c0 5 3.3 9.4 8 11 4.7-1.6 8-6 8-11V5l-8-3Zm-1 14-3.5-3.5L9 11l2 2 4-4 1.5 1.5L11 16Z"/></svg>`
+  shield: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 4 5v6c0 5 3.3 9.4 8 11 4.7-1.6 8-6 8-11V5l-8-3Zm-1 14-3.5-3.5L9 11l2 2 4-4 1.5 1.5L11 16Z"/></svg>`,
+  reset: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5a7 7 0 1 1-6.3 10H3.6A9 9 0 1 0 5 6.6V3H3v7h7V8H6.5A7 7 0 0 1 12 5Z"/></svg>`
 };
 
 const app = document.querySelector("#app");
@@ -43,8 +47,10 @@ function render() {
   const activeConversation = conversations.find((conversation) => conversation.id === state.activeConversationId) || conversations[0];
   state.activeConversationId = activeConversation?.id || null;
   const analytics = getAnalytics(conversations);
+  const action = actionButtonState();
 
   app.innerHTML = `
+    ${toastMarkup()}
     <aside class="sidebar">
       <div class="brand">
         <div class="brand-mark">${icons.message}</div>
@@ -97,7 +103,10 @@ function render() {
               <p class="eyebrow">Conversation History</p>
               <h2>Live WhatsApp inbox</h2>
             </div>
-            <button class="icon-button" id="seed-message-button" title="Add demo customer">${icons.message}</button>
+            <div class="inbox-actions">
+              <button class="secondary-button compact-button${action.className("reset-conversations")}" id="reset-conversations-button" type="button"${action.aria("reset-conversations")}>${icons.reset}<span>${action.label("reset-conversations", "Reset", "Resetting...")}</span></button>
+              <button class="icon-button" id="seed-message-button" title="Add demo customer">${icons.message}</button>
+            </div>
           </div>
           <div class="conversation-list">
             ${conversations.map((conversation) => conversationListItem(conversation)).join("") || emptyState("No conversations yet")}
@@ -127,7 +136,7 @@ function render() {
               Incoming WhatsApp message
               <textarea name="text" rows="4">Hi, how much is your service and can book tomorrow morning?</textarea>
             </label>
-            <button type="submit" class="primary-button">${icons.bolt}<span>Run auto-reply</span></button>
+            <button type="submit" class="primary-button${action.className("message")}"${action.aria("message")}>${icons.bolt}<span>${action.label("message", "Run auto-reply", "Running...")}</span></button>
           </form>
         </div>
 
@@ -163,7 +172,7 @@ function render() {
           </div>
             <div class="sync-actions">
               <span class="pill">${state.syncStatus}</span>
-              <button class="secondary-button" id="refresh-workspace-button" type="button">${icons.clock}<span>Refresh</span></button>
+              <button class="secondary-button${action.className("refresh")}" id="refresh-workspace-button" type="button"${action.aria("refresh")}>${icons.clock}<span>${action.label("refresh", "Refresh", "Refreshing...")}</span></button>
             </div>
           </div>
           ${businessSettingsForm(business)}
@@ -198,7 +207,7 @@ function render() {
             <div class="save-feedback ${knowledgeFeedbackClass()}" role="status" aria-live="polite">
               <span>${state.knowledgeStatus}</span>
             </div>
-            <button type="button" class="primary-button" id="save-faqs-button">${icons.shield}<span>Save knowledge base</span></button>
+            <button type="button" class="primary-button${action.className("knowledge")}" id="save-faqs-button"${action.aria("knowledge")}>${icons.shield}<span>${action.label("knowledge", "Save knowledge base", "Saving...")}</span></button>
           </div>
         </div>
       </section>
@@ -311,7 +320,7 @@ function replyTestPanel(business) {
         Customer message
         <textarea name="text" rows="4">${escapeHtml(state.testPreview.question)}</textarea>
       </label>
-      <button type="submit" class="primary-button">${icons.bolt}<span>Test reply</span></button>
+      <button type="submit" class="primary-button${buttonBusyClass("reply-test")}"${buttonBusyAria("reply-test")}>${icons.bolt}<span>${buttonBusyLabel("reply-test", "Test reply", "Testing...")}</span></button>
     </form>
     <div class="reply-preview">
       <span>${business.name} reply</span>
@@ -364,7 +373,7 @@ function businessSettingsForm(business) {
       <div class="save-feedback ${saveFeedbackClass()}" role="status" aria-live="polite">
         <span>${state.saveStatus}</span>
       </div>
-      <button type="submit" class="primary-button">${icons.shield}<span>Save business settings</span></button>
+      <button type="submit" class="primary-button${buttonBusyClass("business")}"${buttonBusyAria("business")}>${icons.shield}<span>${buttonBusyLabel("business", "Save business settings", "Saving...")}</span></button>
     </form>
   `;
 }
@@ -411,6 +420,8 @@ function emptyState(message) {
 }
 
 function bindEvents() {
+  bindButtonClickIndicators();
+
   document.querySelector("#business-select").addEventListener("change", (event) => {
     state.activeBusinessId = event.target.value;
     state.activeConversationId = currentConversations()[0]?.id || null;
@@ -423,6 +434,7 @@ function bindEvents() {
       return;
     }
 
+    state.busyAction = "refresh";
     state.syncStatus = "Refreshing...";
     state.saveStatus = "Refreshing from server...";
     render();
@@ -432,6 +444,7 @@ function bindEvents() {
 
   document.querySelector("#reply-test-form").addEventListener("submit", async (event) => {
     event.preventDefault();
+    state.busyAction = "reply-test";
     const form = new FormData(event.currentTarget);
     const business = currentBusiness();
     const text = cleanValue(form.get("text"), state.testPreview.question);
@@ -458,6 +471,8 @@ function bindEvents() {
       question: text,
       reply: getAssistantReply(result.conversation)
     };
+    state.busyAction = "";
+    showToast("Reply test generated", "success", { renderNow: false });
     saveWorkspace();
     render();
     location.hash = "settings";
@@ -472,6 +487,7 @@ function bindEvents() {
 
   document.querySelector("#message-form").addEventListener("submit", async (event) => {
     event.preventDefault();
+    state.busyAction = "message";
     const form = new FormData(event.currentTarget);
     const business = currentBusiness();
     const result = await runServerSimulator({
@@ -485,6 +501,8 @@ function bindEvents() {
 
     workspace.conversations.unshift(result.conversation);
     state.activeConversationId = result.conversation.id;
+    state.busyAction = "";
+    showToast("Auto-reply generated", "success", { renderNow: false });
     saveWorkspace();
     render();
   });
@@ -507,7 +525,21 @@ function bindEvents() {
     });
     workspace.conversations.unshift(result.conversation);
     state.activeConversationId = result.conversation.id;
+    showToast("Demo customer added", "success", { renderNow: false });
     saveWorkspace();
+    render();
+  });
+
+  document.querySelector("#reset-conversations-button").addEventListener("click", async () => {
+    const business = currentBusiness();
+    const count = currentConversations().length;
+    if (count && !confirm(`Reset demo conversations for ${business.name}? Business settings and Knowledge Base will stay saved.`)) {
+      return;
+    }
+
+    state.busyAction = "reset-conversations";
+    render();
+    await resetBusinessConversations(business);
     render();
   });
 
@@ -549,6 +581,7 @@ function bindEvents() {
 
   document.querySelector("#save-faqs-button").addEventListener("click", async (event) => {
     const business = currentBusiness();
+    state.busyAction = "knowledge";
     state.knowledgeStatus = "Saving...";
     saveWorkspace();
     render();
@@ -560,6 +593,7 @@ function bindEvents() {
   document.querySelector("#business-settings-form").addEventListener("submit", async (event) => {
     event.preventDefault();
     const submitButton = event.currentTarget.querySelector("button[type='submit']");
+    state.busyAction = "business";
     const form = new FormData(event.currentTarget);
     const business = currentBusiness();
     business.name = cleanValue(form.get("name"), business.name);
@@ -605,6 +639,33 @@ function bindEvents() {
   });
 }
 
+function bindButtonClickIndicators() {
+  document.querySelectorAll("button").forEach((button) => {
+    button.addEventListener("click", () => showButtonClick(button));
+  });
+}
+
+function showButtonClick(button) {
+  button.classList.remove("button-clicked");
+  window.requestAnimationFrame(() => {
+    button.classList.add("button-clicked");
+    window.setTimeout(() => button.classList.remove("button-clicked"), 480);
+  });
+}
+
+function setButtonBusy(button, label) {
+  if (!button) {
+    return;
+  }
+
+  button.classList.add("button-busy");
+  button.setAttribute("aria-busy", "true");
+  const labelNode = button.querySelector("span");
+  if (labelNode && label) {
+    labelNode.textContent = label;
+  }
+}
+
 async function runServerSimulator({ business, message }) {
   try {
     const response = await fetch("/api/simulator/message", {
@@ -629,6 +690,49 @@ async function runServerSimulator({ business, message }) {
     return await response.json();
   } catch {
     return handleIncomingMessage({ business, message });
+  }
+}
+
+async function resetBusinessConversations(business) {
+  if (location.protocol !== "file:") {
+    try {
+      const response = await fetch(`/api/businesses/${encodeURIComponent(business.id)}/conversations/reset`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json"
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error("Conversation reset API failed");
+      }
+
+      const payload = await response.json();
+      applyConversationReset(business.id, payload.conversation);
+      state.busyAction = "";
+      showToast("Demo conversations reset", "success", { renderNow: false });
+      saveWorkspace();
+      return;
+    } catch {
+      state.busyAction = "";
+      showToast("Could not reset conversations", "error", { renderNow: false });
+      return;
+    }
+  }
+
+  applyConversationReset(business.id, createStarterConversation(business));
+  state.busyAction = "";
+  showToast("Demo conversations reset", "success", { renderNow: false });
+  saveWorkspace();
+}
+
+function applyConversationReset(businessId, conversation) {
+  workspace.conversations = workspace.conversations.filter((item) => item.businessId !== businessId);
+  if (conversation) {
+    workspace.conversations.unshift(conversation);
+    state.activeConversationId = conversation.id;
+  } else {
+    state.activeConversationId = currentConversations()[0]?.id || null;
   }
 }
 
@@ -685,6 +789,41 @@ function saveWorkspace() {
   localStorage.setItem(storageKey, JSON.stringify(workspace));
 }
 
+function toastMarkup() {
+  if (!state.toast) {
+    return `<div class="toast-region" aria-live="polite" aria-atomic="true"></div>`;
+  }
+
+  return `
+    <div class="toast-region" aria-live="polite" aria-atomic="true">
+      <div class="toast ${state.toast.type}" role="status">
+        ${toastIcon(state.toast.type)}
+        <span>${escapeHtml(state.toast.message)}</span>
+      </div>
+    </div>
+  `;
+}
+
+function toastIcon(type) {
+  return type === "error" ? icons.shield : icons.bolt;
+}
+
+function showToast(message, type = "success", options = {}) {
+  const id = crypto.randomUUID();
+  state.toast = { id, message, type };
+
+  if (options.renderNow !== false) {
+    render();
+  }
+
+  window.setTimeout(() => {
+    if (state.toast?.id === id) {
+      state.toast = null;
+      render();
+    }
+  }, 3400);
+}
+
 function saveFeedbackClass() {
   const normalized = state.saveStatus.toLowerCase();
   if (normalized.includes("saving")) {
@@ -700,6 +839,26 @@ function saveFeedbackClass() {
   }
 
   return "";
+}
+
+function actionButtonState() {
+  return {
+    className: buttonBusyClass,
+    aria: buttonBusyAria,
+    label: buttonBusyLabel
+  };
+}
+
+function buttonBusyClass(action) {
+  return state.busyAction === action ? " button-busy" : "";
+}
+
+function buttonBusyAria(action) {
+  return state.busyAction === action ? " aria-busy=\"true\"" : "";
+}
+
+function buttonBusyLabel(action, readyLabel, busyLabel) {
+  return state.busyAction === action ? busyLabel : readyLabel;
 }
 
 function knowledgeFeedbackClass() {
@@ -764,13 +923,17 @@ async function refreshWorkspaceFromServer() {
 
     state.syncStatus = "Synced from server";
     state.saveStatus = "Ready";
+    state.busyAction = "";
     state.faqDirty = false;
     state.knowledgeStatus = "Synced from server";
+    showToast("Workspace refreshed from server", "success", { renderNow: false });
     saveWorkspace();
     render();
   } catch {
     state.syncStatus = "Local fallback";
     state.saveStatus = "Could not refresh from server";
+    state.busyAction = "";
+    showToast("Could not refresh from server", "error", { renderNow: false });
     render();
   }
 }
@@ -798,10 +961,14 @@ async function saveBusinessSettings(business, submitButton) {
     Object.assign(business, payload.business);
     state.syncStatus = "Synced from server";
     state.saveStatus = `Saved ${formatStatusTime(new Date())}`;
+    state.busyAction = "";
+    showToast("Business settings saved", "success", { renderNow: false });
     saveWorkspace();
   } catch {
     state.syncStatus = "Local fallback";
     state.saveStatus = "Could not save to server";
+    state.busyAction = "";
+    showToast("Could not save business settings", "error", { renderNow: false });
     console.warn("Business settings were saved locally, but the server could not be updated.");
   }
 }
@@ -830,10 +997,14 @@ async function saveKnowledgeBase(business, submitButton) {
     state.faqDirty = false;
     state.syncStatus = "Synced from server";
     state.knowledgeStatus = `Saved ${formatStatusTime(new Date())}`;
+    state.busyAction = "";
+    showToast("Knowledge base saved", "success", { renderNow: false });
     saveWorkspace();
   } catch {
     state.syncStatus = "Local fallback";
     state.knowledgeStatus = "Could not save to server";
+    state.busyAction = "";
+    showToast("Could not save knowledge base", "error", { renderNow: false });
     console.warn("Knowledge base was saved locally, but the server could not be updated.");
   }
 }
