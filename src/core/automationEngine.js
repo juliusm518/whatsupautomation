@@ -125,6 +125,24 @@ export function createDemoWorkspace() {
   };
 }
 
+export function createStarterConversation(business, now = new Date()) {
+  const isAircon = /aircon/i.test(`${business?.name || ""} ${business?.type || ""}`);
+  const text = isAircon
+    ? "Hi, how much is servicing and do you have a slot tomorrow?"
+    : "Hi, where are you located and how much are classes?";
+
+  return handleIncomingMessage({
+    business,
+    now,
+    message: {
+      id: `conv-${crypto.randomUUID()}`,
+      from: "+65 9000 1122",
+      text,
+      timestamp: now.toISOString()
+    }
+  }).conversation;
+}
+
 export function findBusiness(businesses, businessId) {
   return businesses.find((business) => business.id === businessId);
 }
