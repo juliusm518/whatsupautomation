@@ -1,0 +1,41 @@
+button {
+  position: relative;
+  transition:
+    transform 120ms ease,
+    box-shadow 160ms ease,
+    border-color 160ms ease,
+    background-color 160ms ease;
+}
+
+button:active {
+  transform: translateY(1px) scale(0.99);
+}
+
+button.button-clicked {
+  box-shadow:
+    0 0 0 3px rgba(15, 143, 101, 0.18),
+    var(--shadow);
+}
+
+button.button-busy {
+  cursor: wait;
+  pointer-events: none;
+  opacity: 0.9;
+}
+
+button.button-busy::after {
+  content: "";
+  width: 14px;
+  height: 14px;
+  margin-left: 8px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 999px;
+  animation: button-spin 700ms linear infinite;
+}
+
+@keyframes button-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
