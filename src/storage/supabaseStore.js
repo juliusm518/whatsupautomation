@@ -119,7 +119,9 @@ export async function saveBusinessSettingsToSupabase(business) {
       updated_at: new Date().toISOString()
     }
   });
+}
 
+export async function saveFaqsToSupabase(business) {
   await supabaseRequest(`${SUPABASE_TABLES.faqs}?business_id=eq.${encodeURIComponent(business.id)}`, "", {
     method: "DELETE"
   });
