@@ -3,15 +3,18 @@ import { join } from "node:path";
 
 const dist = "dist";
 await rm(dist, { recursive: true, force: true });
-await mkdir(join(dist, "src", "core"), { recursive: true });
+await mkdir(join(dist, "src"), { recursive: true });
 
 const files = [
   "index.html",
   "server.js",
   "package.json",
   "src/app.js",
+  "src/buttonFeedback.css",
+  "src/buttonFeedback.js",
   "src/styles.css",
   "src/core/automationEngine.js",
+  "src/integrations/whatsappCloud.js",
   "src/storage/supabaseStore.js",
   "supabase/migrations/001_initial_schema.sql"
 ];
@@ -23,7 +26,7 @@ for (const file of files) {
   await writeFile(target, await readFile(file));
 }
 
-for (const file of await listJavaScriptFiles(join("dist", "src", "core"))) {
+for (const file of await listJavaScriptFiles(join("dist", "src"))) {
   await import(`../${file}?check=${Date.now()}`);
 }
 
@@ -38,7 +41,7 @@ async function listJavaScriptFiles(root) {
     const path = join(root, entry.name);
     if (entry.isDirectory()) {
       files.push(...(await listJavaScriptFiles(path)));
-    } else if (entry.name.endsWith(".js") && !path.endsWith("app.js")) {
+    } else if (entry.name.endsWith(".js") && !path.endsWith("app.js") && !path.endsWith("buttonFeedback.js")) {
       files.push(path);
     }
   }
