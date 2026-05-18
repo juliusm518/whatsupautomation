@@ -15,6 +15,8 @@ const state = {
   activeConversationId: workspace.conversations[0]?.id || null,
   syncStatus: location.protocol === "file:" ? "Local preview" : "Loading server data",
   saveStatus: location.protocol === "file:" ? "Local preview only" : "Ready",
+  knowledgeStatus: location.protocol === "file:" ? "Local preview only" : "Saved on server",
+  faqDirty: false,
   testPreview: {
     status: "Ready",
     question: "Hi, what is your schedule and can I book a trial lesson tomorrow?",
@@ -184,10 +186,19 @@ function render() {
               <p class="eyebrow">Knowledge Settings</p>
               <h2>FAQ editor</h2>
             </div>
-            <button class="secondary-button" id="add-faq-button" type="button">${icons.bolt}<span>Add FAQ</span></button>
+            <div class="sync-actions">
+              <span class="pill">${state.knowledgeStatus}</span>
+              <button class="secondary-button" id="add-faq-button" type="button">${icons.bolt}<span>Add FAQ</span></button>
+            </div>
           </div>
           <div class="faq-settings-list">
             ${business.faqs.map((faq, index) => faqSettingsEditor(faq, index)).join("")}
+          </div>
+          <div class="knowledge-actions">
+            <div class="save-feedback ${knowledgeFeedbackClass()}" role="status" aria-live="polite">
+              <span>${state.knowledgeStatus}</span>
+            </div>
+            <button type="button" class="primary-button" id="save-faqs-button">${icons.shield}<span>Save knowledge base</span></button>
           </div>
         </div>
       </section>
@@ -408,6 +419,10 @@ function bindEvents() {
   });
 
   document.querySelector("#refresh-workspace-button").addEventListener("click", async () => {
+    if (state.faqDirty && !confirm("You have unsaved Knowledge Base changes. Refreshing from server will replace them. Continue?")) {
+      return;
+    }
+
     state.syncStatus = "Refreshing...";
     state.saveStatus = "Refreshing from server...";
     render();
@@ -511,6 +526,7 @@ function bindEvents() {
       question: "New customer question",
       answer: "Add the answer you want ReplyPilot to use."
     });
+    markFaqsChanged();
     saveWorkspace();
     render();
     location.hash = "settings";
@@ -524,10 +540,21 @@ function bindEvents() {
       }
 
       business.faqs.splice(Number(button.dataset.deleteFaqIndex), 1);
+      markFaqsChanged();
       saveWorkspace();
       render();
       location.hash = "settings";
     });
+  });
+
+  document.querySelector("#save-faqs-button").addEventListener("click", async (event) => {
+    const business = currentBusiness();
+    state.knowledgeStatus = "Saving...";
+    saveWorkspace();
+    render();
+    await saveKnowledgeBase(business, event.currentTarget);
+    render();
+    location.hash = "settings";
   });
 
   document.querySelector("#business-settings-form").addEventListener("submit", async (event) => {
@@ -555,6 +582,7 @@ function bindEvents() {
   document.querySelectorAll("[data-faq-index]").forEach((textarea) => {
     textarea.addEventListener("input", () => {
       currentBusiness().faqs[Number(textarea.dataset.faqIndex)].answer = textarea.value;
+      markFaqsChanged();
       saveWorkspace();
     });
   });
@@ -562,6 +590,7 @@ function bindEvents() {
   document.querySelectorAll("[data-faq-question-index]").forEach((input) => {
     input.addEventListener("input", () => {
       currentBusiness().faqs[Number(input.dataset.faqQuestionIndex)].question = input.value;
+      markFaqsChanged();
       saveWorkspace();
       updateBusinessSummary();
     });
@@ -570,6 +599,7 @@ function bindEvents() {
   document.querySelectorAll("[data-faq-answer-index]").forEach((textarea) => {
     textarea.addEventListener("input", () => {
       currentBusiness().faqs[Number(textarea.dataset.faqAnswerIndex)].answer = textarea.value;
+      markFaqsChanged();
       saveWorkspace();
     });
   });
@@ -672,6 +702,28 @@ function saveFeedbackClass() {
   return "";
 }
 
+function knowledgeFeedbackClass() {
+  const normalized = state.knowledgeStatus.toLowerCase();
+  if (normalized.includes("saving") || normalized.includes("unsaved")) {
+    return "saving";
+  }
+
+  if (normalized.includes("saved") || normalized.includes("synced")) {
+    return "saved";
+  }
+
+  if (normalized.includes("could not")) {
+    return "failed";
+  }
+
+  return "";
+}
+
+function markFaqsChanged() {
+  state.faqDirty = true;
+  state.knowledgeStatus = "Unsaved changes";
+}
+
 function getAssistantReply(conversation) {
   const assistantMessage = conversation.messages.findLast((message) => message.from === "assistant");
   return assistantMessage?.text || "No reply was generated for this test.";
@@ -712,6 +764,8 @@ async function refreshWorkspaceFromServer() {
 
     state.syncStatus = "Synced from server";
     state.saveStatus = "Ready";
+    state.faqDirty = false;
+    state.knowledgeStatus = "Synced from server";
     saveWorkspace();
     render();
   } catch {
@@ -749,6 +803,38 @@ async function saveBusinessSettings(business, submitButton) {
     state.syncStatus = "Local fallback";
     state.saveStatus = "Could not save to server";
     console.warn("Business settings were saved locally, but the server could not be updated.");
+  }
+}
+
+async function saveKnowledgeBase(business, submitButton) {
+  try {
+    if (submitButton) {
+      submitButton.disabled = true;
+      submitButton.querySelector("span").textContent = "Saving...";
+    }
+
+    const response = await fetch(`/api/businesses/${encodeURIComponent(business.id)}/faqs`, {
+      method: "PUT",
+      headers: {
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({ faqs: business.faqs })
+    });
+
+    if (!response.ok) {
+      throw new Error("Knowledge base API failed");
+    }
+
+    const payload = await response.json();
+    business.faqs = payload.faqs;
+    state.faqDirty = false;
+    state.syncStatus = "Synced from server";
+    state.knowledgeStatus = `Saved ${formatStatusTime(new Date())}`;
+    saveWorkspace();
+  } catch {
+    state.syncStatus = "Local fallback";
+    state.knowledgeStatus = "Could not save to server";
+    console.warn("Knowledge base was saved locally, but the server could not be updated.");
   }
 }
 
