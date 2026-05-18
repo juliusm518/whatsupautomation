@@ -4,10 +4,12 @@ import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   createDemoWorkspace,
+  createStarterConversation,
   findBusiness,
   handleIncomingMessage
 } from "./src/core/automationEngine.js";
 import {
+  deleteBusinessConversationsFromSupabase,
   loadWorkspaceFromSupabase,
   saveBusinessSettingsToSupabase,
   saveConversationToSupabase,
@@ -328,6 +330,34 @@ async function handleApi(request, response) {
       sendJson(response, 200, { ok: true, faqs: business.faqs });
     } catch (error) {
       sendJson(response, error.statusCode || 400, { error: error.message || "Invalid knowledge base payload" });
+    }
+    return;
+  }
+
+  const conversationResetMatch = url.pathname.match(/^\/api\/businesses\/([^/]+)\/conversations\/reset$/);
+  if (request.method === "POST" && conversationResetMatch) {
+    try {
+      const activeWorkspace = supabaseConfigured() ? await loadWorkspaceFromSupabase() : workspace;
+      const business = findBusiness(activeWorkspace.businesses, decodeURIComponent(conversationResetMatch[1]));
+
+      if (!business) {
+        sendJson(response, 404, { error: "Business not found" });
+        return;
+      }
+
+      const conversation = createStarterConversation(business);
+
+      if (supabaseConfigured()) {
+        await deleteBusinessConversationsFromSupabase(business.id);
+        await saveConversationToSupabase(conversation);
+      } else {
+        workspace.conversations = workspace.conversations.filter((item) => item.businessId !== business.id);
+        workspace.conversations.unshift(conversation);
+      }
+
+      sendJson(response, 200, { ok: true, conversation });
+    } catch (error) {
+      sendJson(response, error.statusCode || 400, { error: error.message || "Could not reset conversations" });
     }
     return;
   }
