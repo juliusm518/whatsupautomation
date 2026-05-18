@@ -12,6 +12,8 @@ const files = [
   "src/app.js",
   "src/buttonFeedback.css",
   "src/buttonFeedback.js",
+  "src/onboardingChecklist.css",
+  "src/onboardingChecklist.js",
   "src/styles.css",
   "src/core/automationEngine.js",
   "src/integrations/whatsappCloud.js",
@@ -41,7 +43,7 @@ async function listJavaScriptFiles(root) {
     const path = join(root, entry.name);
     if (entry.isDirectory()) {
       files.push(...(await listJavaScriptFiles(path)));
-    } else if (entry.name.endsWith(".js") && !path.endsWith("app.js") && !path.endsWith("buttonFeedback.js")) {
+    } else if (entry.name.endsWith(".js") && !path.endsWith("app.js") && !path.endsWith("buttonFeedback.js") && !path.endsWith("onboardingChecklist.js")) {
       files.push(path);
     }
   }

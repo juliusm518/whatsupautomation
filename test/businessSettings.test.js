@@ -47,6 +47,16 @@ test("dashboard styles toast notifications", async () => {
   assert.match(styles, /\.toast\.error/);
 });
 
+test("dashboard styles the pilot onboarding checklist", async () => {
+  const styles = await readFile(new URL("../src/onboardingChecklist.css", import.meta.url), "utf8");
+
+  assert.match(styles, /\.setup-panel/);
+  assert.match(styles, /\.setup-checklist/);
+  assert.match(styles, /\.setup-step\.done/);
+  assert.match(styles, /\.setup-step\.pending/);
+  assert.match(styles, /repeat\(5, minmax\(0, 1fr\)\)/);
+});
+
 test("dashboard loads global button click feedback", async () => {
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
   const script = await readFile(new URL("../src/buttonFeedback.js", import.meta.url), "utf8");
@@ -62,6 +72,21 @@ test("dashboard loads global button click feedback", async () => {
   assert.match(script, /Reply test generated/);
   assert.match(script, /Could not save knowledge base/);
   assert.match(styles, /button-clicked/);
+});
+
+test("dashboard loads the pilot onboarding checklist", async () => {
+  const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
+  const script = await readFile(new URL("../src/onboardingChecklist.js", import.meta.url), "utf8");
+
+  assert.match(html, /onboardingChecklist\.css/);
+  assert.match(html, /onboardingChecklist\.js/);
+  assert.match(script, /Pilot Onboarding/);
+  assert.match(script, /Go-live checklist/);
+  assert.match(script, /Business profile/);
+  assert.match(script, /Knowledge base/);
+  assert.match(script, /Reply test/);
+  assert.match(script, /WhatsApp webhook/);
+  assert.match(script, /Server sync/);
 });
 
 test("server persists business settings for reply generation", async () => {
