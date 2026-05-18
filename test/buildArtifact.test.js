@@ -7,6 +7,7 @@ test("build artifact includes dashboard assets and server integration modules", 
 
   assert.match(buildScript, /src\/buttonFeedback\.css/);
   assert.match(buildScript, /src\/buttonFeedback\.js/);
+  assert.match(buildScript, /src\/onboardingChecklist\.css/);
   assert.match(buildScript, /src\/onboardingChecklist\.js/);
   assert.match(buildScript, /src\/integrations\/whatsappCloud\.js/);
   assert.match(buildScript, /listJavaScriptFiles\(join\("dist", "src"\)\)/);
