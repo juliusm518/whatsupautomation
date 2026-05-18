@@ -441,7 +441,7 @@ function bindEvents() {
     state.testPreview = {
       status: result.conversation.status.replace("-", " "),
       question: text,
-      reply: result.reply
+      reply: getAssistantReply(result.conversation)
     };
     saveWorkspace();
     render();
@@ -670,6 +670,11 @@ function saveFeedbackClass() {
   }
 
   return "";
+}
+
+function getAssistantReply(conversation) {
+  const assistantMessage = conversation.messages.findLast((message) => message.from === "assistant");
+  return assistantMessage?.text || "No reply was generated for this test.";
 }
 
 async function refreshWorkspaceFromServer() {
