@@ -35,6 +35,17 @@ test("dashboard includes editable business settings controls", async () => {
   assert.match(source, /Save business settings/);
 });
 
+test("dashboard loads global button click feedback", async () => {
+  const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
+  const script = await readFile(new URL("../src/buttonFeedback.js", import.meta.url), "utf8");
+  const styles = await readFile(new URL("../src/buttonFeedback.css", import.meta.url), "utf8");
+
+  assert.match(html, /buttonFeedback\.css/);
+  assert.match(html, /buttonFeedback\.js/);
+  assert.match(script, /button-clicked/);
+  assert.match(styles, /button-clicked/);
+});
+
 test("server persists business settings for reply generation", async () => {
   const source = await readFile(new URL("../server.js", import.meta.url), "utf8");
 
