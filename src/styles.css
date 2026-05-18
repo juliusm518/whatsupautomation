@@ -41,12 +41,105 @@ textarea {
 
 button {
   cursor: pointer;
+  position: relative;
+  transition:
+    transform 120ms ease,
+    box-shadow 160ms ease,
+    border-color 160ms ease,
+    background-color 160ms ease;
+}
+
+button:active {
+  transform: translateY(1px) scale(0.99);
+}
+
+button.button-clicked {
+  box-shadow:
+    0 0 0 3px rgba(15, 143, 101, 0.18),
+    var(--shadow);
+}
+
+button.button-busy {
+  cursor: wait;
+  pointer-events: none;
+  opacity: 0.9;
+}
+
+button.button-busy::after {
+  content: "";
+  width: 14px;
+  height: 14px;
+  margin-left: 8px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 999px;
+  animation: button-spin 700ms linear infinite;
+}
+
+@keyframes button-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 svg {
   width: 20px;
   height: 20px;
   fill: currentColor;
+}
+
+.toast-region {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 20;
+  display: grid;
+  justify-items: end;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(360px, calc(100vw - 32px));
+  min-height: 48px;
+  padding: 12px 14px;
+  border: 1px solid rgba(15, 143, 101, 0.28);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: var(--shadow);
+  color: var(--ink);
+  font-weight: 800;
+  animation: toast-in 180ms ease-out;
+}
+
+.toast svg {
+  flex: 0 0 auto;
+  color: var(--brand);
+}
+
+.toast.error {
+  border-color: rgba(232, 111, 95, 0.38);
+  background: #fff7f3;
+  color: #8f2f21;
+}
+
+.toast.error svg {
+  color: #b43f2d;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 #app {
@@ -300,6 +393,14 @@ h2 {
   flex-wrap: wrap;
 }
 
+.inbox-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .icon-button {
   justify-content: center;
   width: 40px;
@@ -308,6 +409,12 @@ h2 {
   border-radius: 8px;
   background: var(--brand);
   color: #fff;
+}
+
+.compact-button {
+  min-height: 40px;
+  padding: 0 12px;
+  font-size: 0.86rem;
 }
 
 .conversation-list {
@@ -746,5 +853,16 @@ h2 {
 
   .bubble {
     max-width: 100%;
+  }
+
+  .toast-region {
+    right: 16px;
+    bottom: 16px;
+    left: 16px;
+    justify-items: stretch;
+  }
+
+  .toast {
+    max-width: none;
   }
 }
