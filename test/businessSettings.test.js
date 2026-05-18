@@ -48,13 +48,13 @@ test("dashboard styles toast notifications", async () => {
 });
 
 test("dashboard styles the pilot onboarding checklist", async () => {
-  const styles = await readFile(new URL("../src/styles.css", import.meta.url), "utf8");
+  const styles = await readFile(new URL("../src/onboardingChecklist.css", import.meta.url), "utf8");
 
   assert.match(styles, /\.setup-panel/);
   assert.match(styles, /\.setup-checklist/);
   assert.match(styles, /\.setup-step\.done/);
   assert.match(styles, /\.setup-step\.pending/);
-  assert.match(styles, /repeat\(5, 1fr\)/);
+  assert.match(styles, /repeat\(5, minmax\(0, 1fr\)\)/);
 });
 
 test("dashboard loads global button click feedback", async () => {
@@ -78,6 +78,7 @@ test("dashboard loads the pilot onboarding checklist", async () => {
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
   const script = await readFile(new URL("../src/onboardingChecklist.js", import.meta.url), "utf8");
 
+  assert.match(html, /onboardingChecklist\.css/);
   assert.match(html, /onboardingChecklist\.js/);
   assert.match(script, /Pilot Onboarding/);
   assert.match(script, /Go-live checklist/);
