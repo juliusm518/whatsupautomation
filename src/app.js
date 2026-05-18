@@ -14,7 +14,12 @@ const state = {
   activeBusinessId: workspace.businesses[0].id,
   activeConversationId: workspace.conversations[0]?.id || null,
   syncStatus: location.protocol === "file:" ? "Local preview" : "Loading server data",
-  saveStatus: location.protocol === "file:" ? "Local preview only" : "Ready"
+  saveStatus: location.protocol === "file:" ? "Local preview only" : "Ready",
+  testPreview: {
+    status: "Ready",
+    question: "Hi, what is your schedule and can I book a trial lesson tomorrow?",
+    reply: ""
+  }
 };
 
 const icons = {
@@ -165,6 +170,17 @@ function render() {
         <div class="panel settings-panel">
           <div class="panel-header">
             <div>
+              <p class="eyebrow">Reply Test</p>
+              <h2>Test customer message</h2>
+            </div>
+            <span class="pill">${state.testPreview.status}</span>
+          </div>
+          ${replyTestPanel(business)}
+        </div>
+
+        <div class="panel settings-panel">
+          <div class="panel-header">
+            <div>
               <p class="eyebrow">Knowledge Settings</p>
               <h2>FAQ editor</h2>
             </div>
@@ -271,6 +287,28 @@ function faqEditor(faq, index) {
   `;
 }
 
+function replyTestPanel(business) {
+  const reply = state.testPreview.reply || "Run a test to see the exact reply customers will receive.";
+
+  return `
+    <form class="form-stack" id="reply-test-form">
+      <label>
+        Customer phone
+        <input name="from" value="+65 9000 1122" autocomplete="tel" />
+      </label>
+      <label>
+        Customer message
+        <textarea name="text" rows="4">${escapeHtml(state.testPreview.question)}</textarea>
+      </label>
+      <button type="submit" class="primary-button">${icons.bolt}<span>Test reply</span></button>
+    </form>
+    <div class="reply-preview">
+      <span>${business.name} reply</span>
+      <p>${escapeHtml(reply)}</p>
+    </div>
+  `;
+}
+
 function businessSettingsForm(business) {
   return `
     <form class="settings-form" id="business-settings-form">
@@ -374,6 +412,39 @@ function bindEvents() {
     state.saveStatus = "Refreshing from server...";
     render();
     await refreshWorkspaceFromServer();
+    location.hash = "settings";
+  });
+
+  document.querySelector("#reply-test-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const business = currentBusiness();
+    const text = cleanValue(form.get("text"), state.testPreview.question);
+    state.testPreview = {
+      status: "Testing...",
+      question: text,
+      reply: "Generating the customer reply..."
+    };
+    render();
+
+    const result = await runServerSimulator({
+      business,
+      message: {
+        id: `conv-${crypto.randomUUID()}`,
+        from: cleanValue(form.get("from"), "+65 9000 1122"),
+        text
+      }
+    });
+
+    workspace.conversations.unshift(result.conversation);
+    state.activeConversationId = result.conversation.id;
+    state.testPreview = {
+      status: result.conversation.status.replace("-", " "),
+      question: text,
+      reply: result.reply
+    };
+    saveWorkspace();
+    render();
     location.hash = "settings";
   });
 
