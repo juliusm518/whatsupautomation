@@ -12,6 +12,7 @@ const files = [
   "src/app.js",
   "src/buttonFeedback.css",
   "src/buttonFeedback.js",
+  "src/onboardingChecklist.css",
   "src/onboardingChecklist.js",
   "src/styles.css",
   "src/core/automationEngine.js",
