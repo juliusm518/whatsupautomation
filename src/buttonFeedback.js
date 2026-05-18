@@ -15,10 +15,6 @@ document.addEventListener("click", (event) => {
 });
 
 document.addEventListener("submit", (event) => {
-  if (hasNativeToast()) {
-    return;
-  }
-
   if (event.target.id === "reply-test-form") {
     window.setTimeout(() => showToast("Reply test generated"), 700);
   }
@@ -36,10 +32,6 @@ document.addEventListener("submit", (event) => {
 });
 
 document.addEventListener("click", (event) => {
-  if (hasNativeToast()) {
-    return;
-  }
-
   const button = event.target.closest(feedbackSelector);
   if (!button) {
     return;
@@ -64,8 +56,8 @@ document.addEventListener("click", (event) => {
   }
 });
 
-function hasNativeToast() {
-  return Boolean(document.querySelector(nativeToastSelector));
+function hasActiveNativeToast() {
+  return Boolean(document.querySelector(`${nativeToastSelector} .toast`));
 }
 
 function watchStatus(element, messages) {
@@ -91,6 +83,10 @@ function watchStatus(element, messages) {
 }
 
 function showToast(message, type = "success") {
+  if (hasActiveNativeToast()) {
+    return;
+  }
+
   const region = getToastRegion();
   const toast = document.createElement("div");
   toast.className = `toast ${type}`;
