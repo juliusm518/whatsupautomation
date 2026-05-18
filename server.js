@@ -11,6 +11,7 @@ import {
   loadWorkspaceFromSupabase,
   saveBusinessSettingsToSupabase,
   saveConversationToSupabase,
+  saveFaqsToSupabase,
   supabaseConfigured
 } from "./src/storage/supabaseStore.js";
 import {
@@ -206,6 +207,18 @@ function sanitizeBusinessSettings(input, fallback) {
   };
 }
 
+function sanitizeFaqs(input, fallbackFaqs = []) {
+  const faqs = Array.isArray(input) ? input : fallbackFaqs;
+  const cleanedFaqs = faqs
+    .map((faq) => ({
+      question: cleanText(faq.question, ""),
+      answer: cleanText(faq.answer, "")
+    }))
+    .filter((faq) => faq.question && faq.answer);
+
+  return cleanedFaqs.length ? cleanedFaqs : fallbackFaqs;
+}
+
 function cleanText(value, fallback) {
   const cleaned = String(value || "").trim();
   return cleaned || fallback;
@@ -272,6 +285,7 @@ async function handleApi(request, response) {
       }
 
       const business = sanitizeBusinessSettings(body.business, existingBusiness);
+      business.faqs = existingBusiness.faqs;
 
       if (supabaseConfigured()) {
         await saveBusinessSettingsToSupabase(business);
@@ -283,6 +297,37 @@ async function handleApi(request, response) {
       sendJson(response, 200, { ok: true, business });
     } catch (error) {
       sendJson(response, error.statusCode || 400, { error: error.message || "Invalid business settings payload" });
+    }
+    return;
+  }
+
+  const businessFaqsMatch = url.pathname.match(/^\/api\/businesses\/([^/]+)\/faqs$/);
+  if (request.method === "PUT" && businessFaqsMatch) {
+    try {
+      const body = await readJson(request);
+      const activeWorkspace = supabaseConfigured() ? await loadWorkspaceFromSupabase() : workspace;
+      const existingBusiness = findBusiness(activeWorkspace.businesses, decodeURIComponent(businessFaqsMatch[1]));
+
+      if (!existingBusiness) {
+        sendJson(response, 404, { error: "Business not found" });
+        return;
+      }
+
+      const business = {
+        ...existingBusiness,
+        faqs: sanitizeFaqs(body.faqs, existingBusiness.faqs)
+      };
+
+      if (supabaseConfigured()) {
+        await saveFaqsToSupabase(business);
+      } else {
+        const index = workspace.businesses.findIndex((item) => item.id === business.id);
+        workspace.businesses[index] = business;
+      }
+
+      sendJson(response, 200, { ok: true, faqs: business.faqs });
+    } catch (error) {
+      sendJson(response, error.statusCode || 400, { error: error.message || "Invalid knowledge base payload" });
     }
     return;
   }
