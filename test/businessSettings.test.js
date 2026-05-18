@@ -12,6 +12,11 @@ test("dashboard includes editable business settings controls", async () => {
   assert.match(source, /data-faq-question-index/);
   assert.match(source, /add-faq-button/);
   assert.match(source, /data-delete-faq-index/);
+  assert.match(source, /save-faqs-button/);
+  assert.match(source, /Save knowledge base/);
+  assert.match(source, /saveKnowledgeBase/);
+  assert.match(source, /unsaved Knowledge Base changes/i);
+  assert.match(source, /faqDirty/);
   assert.match(source, /saveBusinessSettings/);
   assert.match(source, /refreshWorkspaceFromServer/);
   assert.match(source, /refresh-workspace-button/);
@@ -34,6 +39,9 @@ test("server persists business settings for reply generation", async () => {
   const source = await readFile(new URL("../server.js", import.meta.url), "utf8");
 
   assert.equal(source.includes("businessSettingsMatch"), true);
+  assert.equal(source.includes("businessFaqsMatch"), true);
   assert.match(source, /saveBusinessSettingsToSupabase/);
+  assert.match(source, /saveFaqsToSupabase/);
   assert.match(source, /sanitizeBusinessSettings/);
+  assert.match(source, /sanitizeFaqs/);
 });
