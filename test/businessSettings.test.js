@@ -35,6 +35,15 @@ test("dashboard includes editable business settings controls", async () => {
   assert.match(source, /Save business settings/);
 });
 
+test("dashboard styles toast notifications", async () => {
+  const styles = await readFile(new URL("../src/buttonFeedback.css", import.meta.url), "utf8");
+
+  assert.match(styles, /fallback-toast-region/);
+  assert.match(styles, /\.toast/);
+  assert.match(styles, /toast-in/);
+  assert.match(styles, /\.toast\.error/);
+});
+
 test("dashboard loads global button click feedback", async () => {
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
   const script = await readFile(new URL("../src/buttonFeedback.js", import.meta.url), "utf8");
@@ -43,6 +52,11 @@ test("dashboard loads global button click feedback", async () => {
   assert.match(html, /buttonFeedback\.css/);
   assert.match(html, /buttonFeedback\.js/);
   assert.match(script, /button-clicked/);
+  assert.match(script, /showToast/);
+  assert.match(script, /Knowledge base saved/);
+  assert.match(script, /Business settings saved/);
+  assert.match(script, /Reply test generated/);
+  assert.match(script, /Could not save knowledge base/);
   assert.match(styles, /button-clicked/);
 });
 
