@@ -51,6 +51,10 @@ document.addEventListener("click", (event) => {
     });
   }
 
+  if (button.id === "reset-conversations-button") {
+    window.setTimeout(() => showToast("Demo conversations reset"), 900);
+  }
+
   if (button.id === "seed-message-button") {
     showToast("Demo customer added");
   }
