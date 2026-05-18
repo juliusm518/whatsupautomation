@@ -21,6 +21,9 @@ test("dashboard includes editable business settings controls", async () => {
   assert.match(source, /refreshWorkspaceFromServer/);
   assert.match(source, /refresh-workspace-button/);
   assert.match(source, /Refreshing from server/);
+  assert.match(source, /reset-conversations-button/);
+  assert.match(source, /resetBusinessConversations/);
+  assert.match(source, /Demo conversations reset/);
   assert.match(source, /Reply Test/);
   assert.match(source, /reply-test-form/);
   assert.match(source, /Test reply/);
@@ -55,6 +58,7 @@ test("dashboard loads global button click feedback", async () => {
   assert.match(script, /showToast/);
   assert.match(script, /Knowledge base saved/);
   assert.match(script, /Business settings saved/);
+  assert.match(script, /Demo conversations reset/);
   assert.match(script, /Reply test generated/);
   assert.match(script, /Could not save knowledge base/);
   assert.match(styles, /button-clicked/);
@@ -67,6 +71,9 @@ test("server persists business settings for reply generation", async () => {
   assert.equal(source.includes("businessFaqsMatch"), true);
   assert.match(source, /saveBusinessSettingsToSupabase/);
   assert.match(source, /saveFaqsToSupabase/);
+  assert.equal(source.includes("conversations\\/reset"), true);
+  assert.match(source, /deleteBusinessConversationsFromSupabase/);
+  assert.match(source, /createStarterConversation/);
   assert.match(source, /sanitizeBusinessSettings/);
   assert.match(source, /sanitizeFaqs/);
 });
