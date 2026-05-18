@@ -20,6 +20,7 @@ test("dashboard includes editable business settings controls", async () => {
   assert.match(source, /reply-test-form/);
   assert.match(source, /Test reply/);
   assert.match(source, /reply-preview/);
+  assert.match(source, /getAssistantReply/);
   assert.match(source, /\/api\/workspace/);
   assert.match(source, /Synced from server/);
   assert.match(source, /save-feedback/);
