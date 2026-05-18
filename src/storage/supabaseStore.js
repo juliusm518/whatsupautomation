@@ -104,6 +104,13 @@ export async function saveConversationToSupabase(conversation) {
   });
 }
 
+export async function deleteBusinessConversationsFromSupabase(businessId) {
+  const query = `?business_id=eq.${encodeURIComponent(businessId)}`;
+  await supabaseRequest(`${SUPABASE_TABLES.messages}${query}`, "", { method: "DELETE" });
+  await supabaseRequest(`${SUPABASE_TABLES.leads}${query}`, "", { method: "DELETE" });
+  await supabaseRequest(`${SUPABASE_TABLES.conversations}${query}`, "", { method: "DELETE" });
+}
+
 export async function saveBusinessSettingsToSupabase(business) {
   await supabaseRequest(`${SUPABASE_TABLES.businesses}?id=eq.${encodeURIComponent(business.id)}`, "", {
     method: "PATCH",
