@@ -172,6 +172,42 @@ insert into public.replypilot_businesses (
     '+65 8899 1020',
     'service slot',
     '{"timeZone":"Asia/Singapore","days":[1,2,3,4,5,6],"open":"08:30","close":"18:00"}'
+  ),
+  (
+    'plumbing-care',
+    'PipeWise Plumbing',
+    'Plumbing',
+    'Mei Wong',
+    '+65 8777 2030',
+    'repair visit',
+    '{"timeZone":"Asia/Singapore","days":[1,2,3,4,5,6],"open":"08:00","close":"20:00"}'
+  ),
+  (
+    'reno-studio',
+    'HomeCraft Renovation',
+    'Renovation',
+    'Darren Koh',
+    '+65 8555 4412',
+    'renovation consultation',
+    '{"timeZone":"Asia/Singapore","days":[1,2,3,4,5,6],"open":"10:00","close":"18:30"}'
+  ),
+  (
+    'hawker-kitchen',
+    'Uncle Lim Chicken Rice',
+    'Hawker Stall',
+    'Lim Ah Seng',
+    '+65 8666 5108',
+    'bulk order pickup',
+    '{"timeZone":"Asia/Singapore","days":[1,2,3,4,5,6],"open":"10:30","close":"15:00"}'
+  ),
+  (
+    'bakery-bites',
+    'SweetCrumb Bakery',
+    'Bakery',
+    'Nur Aisyah',
+    '+65 8444 7788',
+    'cake order',
+    '{"timeZone":"Asia/Singapore","days":[2,3,4,5,6,0],"open":"09:00","close":"17:30"}'
   )
 on conflict (id) do update set
   name = excluded.name,
@@ -188,7 +224,19 @@ insert into public.replypilot_faqs (business_id, question, answer, sort_order) v
   ('tuition-hub', 'Where are you located?', 'We are at Tampines Central, a 5-minute walk from the MRT.', 3),
   ('aircon-pro', 'How much is aircon servicing?', 'General servicing starts from $35/unit, with discounts for 3 or more units.', 1),
   ('aircon-pro', 'Do you handle urgent repairs?', 'Yes, urgent repair slots are available depending on technician location.', 2),
-  ('aircon-pro', 'Which areas do you cover?', 'We cover all HDB and condo estates islandwide in Singapore.', 3)
+  ('aircon-pro', 'Which areas do you cover?', 'We cover all HDB and condo estates islandwide in Singapore.', 3),
+  ('plumbing-care', 'Do you handle urgent leaks?', 'Yes, we handle urgent leaks when a plumber is available. Please share your block, unit type, and a photo if possible.', 1),
+  ('plumbing-care', 'How much is plumbing repair?', 'Inspection starts from $40, and repair pricing depends on the issue after the plumber checks it.', 2),
+  ('plumbing-care', 'Which plumbing services do you provide?', 'We handle leaking pipes, clogged sinks, toilet flush issues, tap replacement, and water heater connections.', 3),
+  ('reno-studio', 'Do you provide renovation quotes?', 'Yes, we can prepare a quote after reviewing your floor plan, scope, preferred style, and timeline.', 1),
+  ('reno-studio', 'Can you handle HDB renovations?', 'Yes, we handle HDB, condo, and landed renovation work, including carpentry, flooring, and kitchen upgrades.', 2),
+  ('reno-studio', 'How long does renovation take?', 'Small upgrades can take 2 to 4 weeks, while full-home projects usually need 8 to 12 weeks after approvals.', 3),
+  ('hawker-kitchen', 'Can I place a bulk order?', 'Yes, bulk orders are available with at least one day''s notice. Please share the number of packets and pickup time.', 1),
+  ('hawker-kitchen', 'What dishes do you sell?', 'We sell steamed chicken rice, roasted chicken rice, char siew rice, and soup add-ons while stocks last.', 2),
+  ('hawker-kitchen', 'Where is your stall?', 'We are at Bedok Food Centre, stall 18, usually open for lunch from Monday to Saturday.', 3),
+  ('bakery-bites', 'Do you make custom cakes?', 'Yes, we make custom birthday and celebration cakes with 3 to 5 days'' notice depending on design.', 1),
+  ('bakery-bites', 'How much are cakes?', 'Standard 6-inch cakes start from $48. Custom cakes are quoted based on size, flavor, and decoration.', 2),
+  ('bakery-bites', 'Do you deliver?', 'Delivery is available islandwide from $12, or customers can self-collect from our Tampines bakery.', 3)
 on conflict (business_id, question) do update set
   answer = excluded.answer,
   sort_order = excluded.sort_order,

@@ -61,6 +61,126 @@ export function createDemoWorkspace() {
         }
       ],
       appointmentLabel: "service slot"
+    },
+    {
+      id: "plumbing-care",
+      name: "PipeWise Plumbing",
+      type: "Plumbing",
+      whatsappNumber: "+65 8777 2030",
+      owner: "Mei Wong",
+      autoReplyEnabled: true,
+      escalationEnabled: true,
+      businessHours: {
+        timeZone: DEFAULT_TIME_ZONE,
+        days: [1, 2, 3, 4, 5, 6],
+        open: "08:00",
+        close: "20:00"
+      },
+      faqs: [
+        {
+          question: "Do you handle urgent leaks?",
+          answer: "Yes, we handle urgent leaks when a plumber is available. Please share your block, unit type, and a photo if possible."
+        },
+        {
+          question: "How much is plumbing repair?",
+          answer: "Inspection starts from $40, and repair pricing depends on the issue after the plumber checks it."
+        },
+        {
+          question: "Which plumbing services do you provide?",
+          answer: "We handle leaking pipes, clogged sinks, toilet flush issues, tap replacement, and water heater connections."
+        }
+      ],
+      appointmentLabel: "repair visit"
+    },
+    {
+      id: "reno-studio",
+      name: "HomeCraft Renovation",
+      type: "Renovation",
+      whatsappNumber: "+65 8555 4412",
+      owner: "Darren Koh",
+      autoReplyEnabled: true,
+      escalationEnabled: true,
+      businessHours: {
+        timeZone: DEFAULT_TIME_ZONE,
+        days: [1, 2, 3, 4, 5, 6],
+        open: "10:00",
+        close: "18:30"
+      },
+      faqs: [
+        {
+          question: "Do you provide renovation quotes?",
+          answer: "Yes, we can prepare a quote after reviewing your floor plan, scope, preferred style, and timeline."
+        },
+        {
+          question: "Can you handle HDB renovations?",
+          answer: "Yes, we handle HDB, condo, and landed renovation work, including carpentry, flooring, and kitchen upgrades."
+        },
+        {
+          question: "How long does renovation take?",
+          answer: "Small upgrades can take 2 to 4 weeks, while full-home projects usually need 8 to 12 weeks after approvals."
+        }
+      ],
+      appointmentLabel: "renovation consultation"
+    },
+    {
+      id: "hawker-kitchen",
+      name: "Uncle Lim Chicken Rice",
+      type: "Hawker Stall",
+      whatsappNumber: "+65 8666 5108",
+      owner: "Lim Ah Seng",
+      autoReplyEnabled: true,
+      escalationEnabled: true,
+      businessHours: {
+        timeZone: DEFAULT_TIME_ZONE,
+        days: [1, 2, 3, 4, 5, 6],
+        open: "10:30",
+        close: "15:00"
+      },
+      faqs: [
+        {
+          question: "Can I place a bulk order?",
+          answer: "Yes, bulk orders are available with at least one day's notice. Please share the number of packets and pickup time."
+        },
+        {
+          question: "What dishes do you sell?",
+          answer: "We sell steamed chicken rice, roasted chicken rice, char siew rice, and soup add-ons while stocks last."
+        },
+        {
+          question: "Where is your stall?",
+          answer: "We are at Bedok Food Centre, stall 18, usually open for lunch from Monday to Saturday."
+        }
+      ],
+      appointmentLabel: "bulk order pickup"
+    },
+    {
+      id: "bakery-bites",
+      name: "SweetCrumb Bakery",
+      type: "Bakery",
+      whatsappNumber: "+65 8444 7788",
+      owner: "Nur Aisyah",
+      autoReplyEnabled: true,
+      escalationEnabled: true,
+      businessHours: {
+        timeZone: DEFAULT_TIME_ZONE,
+        days: [2, 3, 4, 5, 6, 0],
+        open: "09:00",
+        close: "17:30"
+      },
+      faqs: [
+        {
+          question: "Do you make custom cakes?",
+          answer: "Yes, we make custom birthday and celebration cakes with 3 to 5 days' notice depending on design."
+        },
+        {
+          question: "How much are cakes?",
+          answer: "Standard 6-inch cakes start from $48. Custom cakes are quoted based on size, flavor, and decoration."
+        },
+        {
+          question: "Do you deliver?",
+          answer: "Delivery is available islandwide from $12, or customers can self-collect from our Tampines bakery."
+        }
+      ],
+      appointmentLabel: "cake order"
     }
   ];
 
@@ -120,15 +240,131 @@ export function createDemoWorkspace() {
             timestamp: "2026-05-16T00:12:03.000Z"
           }
         ]
+      },
+      {
+        id: "conv-1003",
+        businessId: "plumbing-care",
+        customerName: "Mr Ong",
+        customerPhone: "+65 9888 2044",
+        status: "needs-human",
+        intent: "escalation",
+        summary: "Customer reported an urgent pipe leak and needs a repair visit today.",
+        lead: {
+          name: "Mr Ong",
+          phone: "+65 9888 2044",
+          service: "Urgent leaking pipe repair",
+          preferredTime: "Today"
+        },
+        messages: [
+          {
+            from: "customer",
+            text: "Urgent, my kitchen pipe is leaking. Can someone come today?",
+            timestamp: "2026-05-16T03:05:00.000Z"
+          },
+          {
+            from: "assistant",
+            text: "I have flagged this for a plumber. Please share your block, unit type, and whether the water supply can be turned off.",
+            timestamp: "2026-05-16T03:05:03.000Z"
+          }
+        ]
+      },
+      {
+        id: "conv-1004",
+        businessId: "reno-studio",
+        customerName: "Rachel",
+        customerPhone: "+65 9333 7788",
+        status: "qualified-lead",
+        intent: "lead",
+        summary: "Customer asked for a kitchen renovation quote and wants a consultation next week.",
+        lead: {
+          name: "Rachel",
+          phone: "+65 9333 7788",
+          service: "Kitchen renovation quote",
+          preferredTime: "Next week"
+        },
+        messages: [
+          {
+            from: "customer",
+            text: "Hi, can I get a quote for kitchen renovation? I can do consultation next week.",
+            timestamp: "2026-05-16T04:20:00.000Z"
+          },
+          {
+            from: "assistant",
+            text: "Yes, we can help with a kitchen renovation quote. Please share your floor plan, target budget, timeline, and preferred consultation slot.",
+            timestamp: "2026-05-16T04:20:02.000Z"
+          }
+        ]
+      },
+      {
+        id: "conv-1005",
+        businessId: "hawker-kitchen",
+        customerName: "Anita",
+        customerPhone: "+65 9222 6611",
+        status: "qualified-lead",
+        intent: "appointment",
+        summary: "Customer wants a bulk chicken rice order for pickup tomorrow.",
+        lead: {
+          name: "Anita",
+          phone: "+65 9222 6611",
+          service: "Chicken rice bulk order",
+          preferredTime: "Tomorrow"
+        },
+        messages: [
+          {
+            from: "customer",
+            text: "Can I order 25 packets of chicken rice for pickup tomorrow at 12pm?",
+            timestamp: "2026-05-16T05:12:00.000Z"
+          },
+          {
+            from: "assistant",
+            text: "Yes, we can help with a bulk order pickup. Please share your name, contact number, pickup time, and whether you prefer steamed or roasted chicken.",
+            timestamp: "2026-05-16T05:12:02.000Z"
+          }
+        ]
+      },
+      {
+        id: "conv-1006",
+        businessId: "bakery-bites",
+        customerName: "Siti",
+        customerPhone: "+65 9444 8833",
+        status: "qualified-lead",
+        intent: "appointment",
+        summary: "Customer asked about a custom birthday cake order for the weekend.",
+        lead: {
+          name: "Siti",
+          phone: "+65 9444 8833",
+          service: "Custom birthday cake",
+          preferredTime: "Weekend"
+        },
+        messages: [
+          {
+            from: "customer",
+            text: "Hi, can I book a custom birthday cake for this weekend?",
+            timestamp: "2026-05-16T06:30:00.000Z"
+          },
+          {
+            from: "assistant",
+            text: "Yes, we can help with a cake order. Please share the date, size, flavor, design idea, and whether you need delivery or self-collection.",
+            timestamp: "2026-05-16T06:30:02.000Z"
+          }
+        ]
       }
     ]
   };
 }
 
 export function createStarterConversation(business, now = new Date()) {
-  const isAircon = /aircon/i.test(`${business?.name || ""} ${business?.type || ""}`);
-  const text = isAircon
-    ? "Hi, how much is servicing and do you have a slot tomorrow?"
+  const profile = `${business?.name || ""} ${business?.type || ""}`;
+  const starterMessages = [
+    [/aircon/i, "Hi, how much is servicing and do you have a slot tomorrow?"],
+    [/plumbing/i, "Urgent, my sink pipe is leaking. Can someone come today?"],
+    [/renovation/i, "Hi, can you quote for kitchen renovation and schedule a consultation next week?"],
+    [/hawker|chicken rice/i, "Can I order 20 packets of chicken rice for pickup tomorrow?"],
+    [/bakery|cake/i, "Hi, how much is a custom cake and can I book one for this weekend?"]
+  ];
+  const matchedStarter = starterMessages.find(([pattern]) => pattern.test(profile));
+  const text = matchedStarter
+    ? matchedStarter[1]
     : "Hi, where are you located and how much are classes?";
 
   return handleIncomingMessage({
@@ -341,9 +577,21 @@ function inferService(text, business) {
     "servicing",
     "repair",
     "leaking",
+    "toilet",
+    "pipe",
+    "sink",
     "plumbing",
     "renovation",
+    "carpentry",
+    "tiles",
+    "kitchen",
+    "chicken rice",
+    "nasi lemak",
+    "bento",
+    "buffet",
     "cake",
+    "cupcake",
+    "pastry",
     "order"
   ];
   const found = serviceHints.filter((hint) => normalized.includes(hint));
