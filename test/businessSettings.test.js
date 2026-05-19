@@ -54,6 +54,8 @@ test("dashboard styles the pilot onboarding checklist", async () => {
   assert.match(styles, /\.setup-checklist/);
   assert.match(styles, /\.setup-step\.done/);
   assert.match(styles, /\.setup-step\.pending/);
+  assert.match(styles, /\.setup-actions/);
+  assert.match(styles, /\.setup-action/);
   assert.match(styles, /repeat\(5, minmax\(0, 1fr\)\)/);
 });
 
@@ -87,6 +89,14 @@ test("dashboard loads the pilot onboarding checklist", async () => {
   assert.match(script, /Reply test/);
   assert.match(script, /WhatsApp webhook/);
   assert.match(script, /Server sync/);
+  assert.match(script, /Edit profile/);
+  assert.match(script, /Edit FAQs/);
+  assert.match(script, /Run test reply/);
+  assert.match(script, /Copy webhook URL/);
+  assert.match(script, /Open Meta setup/);
+  assert.match(script, /Refresh server/);
+  assert.match(script, /copyWebhookUrl/);
+  assert.match(script, /developers\.facebook\.com\/apps/);
 });
 
 test("server persists business settings for reply generation", async () => {

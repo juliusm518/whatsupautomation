@@ -10,6 +10,7 @@ let renderScheduled = false;
 document.addEventListener("DOMContentLoaded", () => {
   renderChecklist();
   observeDashboard();
+  bindChecklistActions();
 });
 
 function observeDashboard() {
@@ -65,6 +66,9 @@ function renderChecklist() {
           <div>
             <strong>${item.label}</strong>
             <span>${item.detail}</span>
+            <div class="setup-actions">
+              ${item.actions.map((action) => setupActionMarkup(action)).join("")}
+            </div>
           </div>
         </article>
       `).join("")}
@@ -86,6 +90,49 @@ function ensureSetupNav() {
   nav.prepend(link);
 }
 
+function setupActionMarkup(action) {
+  if (action.href) {
+    return `<a class="setup-action" href="${action.href}"${action.external ? " target=\"_blank\" rel=\"noopener\"" : ""}>${action.label}</a>`;
+  }
+
+  return `<button class="setup-action" type="button" data-setup-action="${action.action}">${action.label}</button>`;
+}
+
+function bindChecklistActions() {
+  document.addEventListener("click", async (event) => {
+    const button = event.target.closest("[data-setup-action]");
+    if (!button) {
+      return;
+    }
+
+    const action = button.dataset.setupAction;
+    if (action === "copy-webhook") {
+      await copyWebhookUrl(button);
+      return;
+    }
+
+    if (action === "run-reply-test") {
+      document.querySelector("#reply-test-form button[type='submit']")?.click();
+      location.hash = "settings";
+      return;
+    }
+
+    if (action === "refresh-workspace") {
+      document.querySelector("#refresh-workspace-button")?.click();
+    }
+  });
+}
+
+async function copyWebhookUrl(button) {
+  const webhookUrl = `${location.origin}/api/whatsapp/webhook`;
+  try {
+    await navigator.clipboard.writeText(webhookUrl);
+    button.textContent = "Copied";
+  } catch {
+    button.textContent = webhookUrl;
+  }
+}
+
 function onboardingItems() {
   const businessName = document.querySelector(".topbar h1")?.textContent?.trim() || "This business";
   const owner = document.querySelector(".operator span")?.textContent?.trim();
@@ -103,27 +150,43 @@ function onboardingItems() {
     {
       label: "Business profile",
       detail: hasProfile ? `${businessName} is ready for customer-facing replies.` : "Complete the business name, owner, and WhatsApp number.",
-      done: hasProfile
+      done: hasProfile,
+      actions: [
+        { label: "Edit profile", href: "#settings" }
+      ]
     },
     {
       label: "Knowledge base",
       detail: hasKnowledge ? `${faqCount} FAQ answers are available for automation.` : "Add at least three FAQ answers before pilot testing.",
-      done: hasKnowledge
+      done: hasKnowledge,
+      actions: [
+        { label: "Edit FAQs", href: "#settings" }
+      ]
     },
     {
       label: "Reply test",
       detail: hasAssistantReply ? "A sample customer reply has been generated for this business." : "Run a test message before connecting a live number.",
-      done: hasAssistantReply
+      done: hasAssistantReply,
+      actions: [
+        { label: "Run test reply", action: "run-reply-test" }
+      ]
     },
     {
       label: "WhatsApp webhook",
       detail: "Confirm Meta webhook verification, phone number ID, and access token in Render.",
-      done: false
+      done: false,
+      actions: [
+        { label: "Copy webhook URL", action: "copy-webhook" },
+        { label: "Open Meta setup", href: "https://developers.facebook.com/apps/", external: true }
+      ]
     },
     {
       label: "Server sync",
       detail: hasServerSync ? "Dashboard changes are connected to the server workflow." : "Refresh from server and save settings after setup changes.",
-      done: hasServerSync
+      done: hasServerSync,
+      actions: [
+        { label: "Refresh server", action: "refresh-workspace" }
+      ]
     }
   ];
 }
