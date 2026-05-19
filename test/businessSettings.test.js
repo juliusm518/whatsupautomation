@@ -96,6 +96,8 @@ test("dashboard loads the pilot onboarding checklist", async () => {
   assert.match(script, /Open Meta setup/);
   assert.match(script, /Refresh server/);
   assert.match(script, /copyWebhookUrl/);
+  assert.match(script, /hydrateChecklistActions/);
+  assert.match(script, /existingPanel/);
   assert.match(script, /developers\.facebook\.com\/apps/);
 });
 
