@@ -35,8 +35,10 @@ function observeDashboard() {
 }
 
 function renderChecklist() {
-  if (document.querySelector(`#${checklistId}`)) {
+  const existingPanel = document.querySelector(`#${checklistId}`);
+  if (existingPanel) {
     ensureSetupNav();
+    hydrateChecklistActions(existingPanel);
     return;
   }
 
@@ -96,6 +98,26 @@ function setupActionMarkup(action) {
   }
 
   return `<button class="setup-action" type="button" data-setup-action="${action.action}">${action.label}</button>`;
+}
+
+function hydrateChecklistActions(panel) {
+  const actionsByLabel = Object.fromEntries(onboardingItems().map((item) => [item.label, item.actions]));
+  panel.querySelectorAll(".setup-step").forEach((step) => {
+    if (step.querySelector(".setup-actions")) {
+      return;
+    }
+
+    const label = step.querySelector("strong")?.textContent?.trim();
+    const actions = actionsByLabel[label] || [];
+    if (!actions.length) {
+      return;
+    }
+
+    const container = document.createElement("div");
+    container.className = "setup-actions";
+    container.innerHTML = actions.map((action) => setupActionMarkup(action)).join("");
+    step.querySelector("span")?.insertAdjacentElement("afterend", container);
+  });
 }
 
 function bindChecklistActions() {
