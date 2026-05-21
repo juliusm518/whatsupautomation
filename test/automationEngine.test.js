@@ -99,3 +99,18 @@ test("attaches BrightPath Tuition to the primary Google calendar for booking tes
   assert.equal(availability.openSlots.length, 3);
   assert.match(availability.openSlots[0].label, /Thu|May|9:00/i);
 });
+
+test("blocks a BrightPath booking request when the requested calendar slot is busy", () => {
+  const result = handleIncomingMessage({
+    business: tuition,
+    message: {
+      from: "+65 9000 1122",
+      text: "Hi, I want to book the BrightPath trial lesson today at 11am."
+    },
+    now: new Date("2026-05-21T23:10:00.000Z")
+  });
+
+  assert.equal(result.intent, "appointment");
+  assert.match(result.reply.text, /already booked/i);
+  assert.doesNotMatch(result.reply.text, /11am.*available/i);
+});

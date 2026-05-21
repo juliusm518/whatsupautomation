@@ -34,7 +34,16 @@ export async function loadWorkspaceFromSupabase() {
       appointmentLabel: business.appointment_label,
       calendar: calendarForBusiness({
         calendar: business.id === "tuition-hub"
-          ? defaultCalendar({ calendarId: "primary", connected: true })
+          ? defaultCalendar({
+            calendarId: "primary",
+            connected: true,
+            busyWindows: [
+              {
+                start: "2026-05-22T11:00",
+                end: "2026-05-22T12:00"
+              }
+            ]
+          })
           : defaultCalendar()
       }),
       faqs: faqs
