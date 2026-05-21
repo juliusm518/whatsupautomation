@@ -1,4 +1,10 @@
 const DEFAULT_TIME_ZONE = "Asia/Singapore";
+const BRIGHTPATH_TEST_BUSY_WINDOWS = [
+  {
+    start: "2026-05-22T11:00",
+    end: "2026-05-22T12:00"
+  }
+];
 
 export function createDemoWorkspace() {
   const businesses = [
@@ -33,7 +39,8 @@ export function createDemoWorkspace() {
       appointmentLabel: "trial lesson",
       calendar: defaultCalendar({
         calendarId: "primary",
-        connected: true
+        connected: true,
+        busyWindows: BRIGHTPATH_TEST_BUSY_WINDOWS
       })
     },
     {
@@ -469,13 +476,15 @@ export function handleIncomingMessage({ business, message, now = new Date() }) {
   const matchedFaq = matchFaq(cleanText, business.faqs);
   const withinHours = isWithinBusinessHours(now, business.businessHours);
   const needsHuman = shouldEscalate(cleanText, intent, business);
+  const appointmentConflict = intent === "appointment" ? findAppointmentConflict(cleanText, business, now) : null;
   const replyText = composeReply({
     business,
     intent,
     matchedFaq,
     lead,
     withinHours,
-    needsHuman
+    needsHuman,
+    appointmentConflict
   });
   const timestamp = message.timestamp || now.toISOString();
 
@@ -607,7 +616,7 @@ export function shouldEscalate(text, intent, business = {}) {
   return intent === "escalation" || escalationWords.some((word) => normalized.includes(word));
 }
 
-function composeReply({ business, intent, matchedFaq, lead, withinHours, needsHuman }) {
+function composeReply({ business, intent, matchedFaq, lead, withinHours, needsHuman, appointmentConflict }) {
   const prefix = withinHours
     ? `Hi, thanks for contacting ${business.name}.`
     : `Hi, thanks for contacting ${business.name}. We are currently outside business hours, but I can still help collect the details.`;
@@ -617,6 +626,10 @@ function composeReply({ business, intent, matchedFaq, lead, withinHours, needsHu
   }
 
   if (intent === "appointment") {
+    if (appointmentConflict) {
+      return `${prefix} ${appointmentConflict.label} is already booked. Please choose another ${business.appointmentLabel || "booking"} slot, or share two alternative timings and the team will confirm the next available option.`;
+    }
+
     return `${prefix} I can help request a ${business.appointmentLabel || "booking"}. Please share your name, phone number, preferred date/time, and what you need help with.`;
   }
 
@@ -705,6 +718,70 @@ function toMinutes(value) {
   return hour * 60 + minute;
 }
 
+function findAppointmentConflict(text, business, now) {
+  const requestedSlot = requestedAppointmentSlot(text, business, now);
+  if (!requestedSlot) {
+    return null;
+  }
+
+  const calendar = calendarForBusiness(business);
+  if (!isBusy(requestedSlot.start, requestedSlot.end, calendar.busyWindows)) {
+    return null;
+  }
+
+  return requestedSlot;
+}
+
+function requestedAppointmentSlot(text, business, now) {
+  const time = requestedTime(text);
+  if (!time) {
+    return null;
+  }
+
+  const hours = business.businessHours || {};
+  const timeZone = hours.timeZone || DEFAULT_TIME_ZONE;
+  const lowerText = String(text || "").toLowerCase();
+  const dayOffset = lowerText.includes("tomorrow") ? 1 : 0;
+  const local = localDateParts(addDays(now, dayOffset), timeZone);
+  const date = `${local.year}-${pad(local.month)}-${pad(local.day)}`;
+  const startMinutes = (time.hour * 60) + time.minute;
+  const endMinutes = startMinutes + calendarForBusiness(business).bookingDurationMinutes;
+
+  return {
+    date,
+    start: `${date}T${minutesToTime(startMinutes)}`,
+    end: `${date}T${minutesToTime(endMinutes)}`,
+    label: `${formatSlotDate(date)} ${formatDisplayTime(startMinutes)}`
+  };
+}
+
+function requestedTime(text) {
+  const value = String(text || "").toLowerCase();
+  const explicit = value.match(/\b([01]?\d|2[0-3]):([0-5]\d)\b/);
+  if (explicit) {
+    return {
+      hour: Number(explicit[1]),
+      minute: Number(explicit[2])
+    };
+  }
+
+  const meridiem = value.match(/\b(1[0-2]|0?[1-9])(?::([0-5]\d))?\s*(am|pm)\b/);
+  if (!meridiem) {
+    return null;
+  }
+
+  let hour = Number(meridiem[1]);
+  const minute = Number(meridiem[2] || 0);
+  if (meridiem[3] === "pm" && hour !== 12) {
+    hour += 12;
+  }
+  if (meridiem[3] === "am" && hour === 12) {
+    hour = 0;
+  }
+
+  return { hour, minute };
+}
+
 function minutesToTime(minutes) {
   return `${pad(Math.floor(minutes / 60))}:${pad(minutes % 60)}`;
 }
@@ -743,7 +820,11 @@ function localDateParts(date, timeZone) {
 }
 
 function isBusy(start, end, busyWindows = []) {
-  return busyWindows.some((window) => start < window.end && end > window.start);
+  return busyWindows.some((window) => start < slotKey(window.end) && end > slotKey(window.start));
+}
+
+function slotKey(value) {
+  return String(value || "").slice(0, 16);
 }
 
 function formatSlotDate(dateKey) {
