@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  buildAvailabilityPreview,
+  calendarForBusiness,
   createDemoWorkspace,
   createStarterConversation,
   detectIntent,
@@ -82,4 +84,18 @@ test("creates a clean starter conversation for a selected business", () => {
   assert.equal(conversation.customerPhone, "+65 9000 1122");
   assert.equal(conversation.messages.length, 2);
   assert.match(conversation.summary, /Tuition|classes|located/i);
+});
+
+test("attaches BrightPath Tuition to the primary Google calendar for booking tests", () => {
+  const calendar = calendarForBusiness(tuition);
+  const availability = buildAvailabilityPreview(tuition, {
+    now: new Date("2026-05-21T01:00:00.000Z"),
+    slotLimit: 3
+  });
+
+  assert.equal(calendar.provider, "google");
+  assert.equal(calendar.calendarId, "primary");
+  assert.equal(calendar.connected, true);
+  assert.equal(availability.openSlots.length, 3);
+  assert.match(availability.openSlots[0].label, /Thu|May|9:00/i);
 });
