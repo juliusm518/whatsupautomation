@@ -829,6 +829,7 @@ function slotKey(value) {
 
 function formatSlotDate(dateKey) {
   return new Intl.DateTimeFormat("en-SG", {
+    timeZone: DEFAULT_TIME_ZONE,
     weekday: "short",
     day: "2-digit",
     month: "short"
@@ -837,6 +838,7 @@ function formatSlotDate(dateKey) {
 
 function formatDisplayTime(minutes) {
   return new Intl.DateTimeFormat("en-SG", {
+    timeZone: DEFAULT_TIME_ZONE,
     hour: "numeric",
     minute: "2-digit"
   }).format(new Date(`2026-01-01T${minutesToTime(minutes)}:00+08:00`));
