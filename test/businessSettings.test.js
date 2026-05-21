@@ -9,6 +9,12 @@ test("dashboard includes editable business settings controls", async () => {
   assert.match(source, /Business Settings/);
   assert.match(source, /name="whatsappNumber"/);
   assert.match(source, /name="appointmentLabel"/);
+  assert.match(source, /Booking Calendar/);
+  assert.match(source, /Google availability/);
+  assert.match(source, /name="calendarId"/);
+  assert.match(source, /buildAvailabilityPreview/);
+  assert.match(source, /calendarForBusiness/);
+  assert.match(source, /slot-chip/);
   assert.match(source, /data-faq-question-index/);
   assert.match(source, /add-faq-button/);
   assert.match(source, /data-delete-faq-index/);
@@ -45,6 +51,14 @@ test("dashboard styles toast notifications", async () => {
   assert.match(styles, /\.toast/);
   assert.match(styles, /toast-in/);
   assert.match(styles, /\.toast\.error/);
+});
+
+test("dashboard styles the booking calendar preview", async () => {
+  const styles = await readFile(new URL("../src/styles.css", import.meta.url), "utf8");
+
+  assert.match(styles, /\.calendar-summary/);
+  assert.match(styles, /\.slot-list/);
+  assert.match(styles, /\.slot-chip/);
 });
 
 test("dashboard styles the pilot onboarding checklist", async () => {
@@ -112,5 +126,6 @@ test("server persists business settings for reply generation", async () => {
   assert.match(source, /deleteBusinessConversationsFromSupabase/);
   assert.match(source, /createStarterConversation/);
   assert.match(source, /sanitizeBusinessSettings/);
+  assert.match(source, /calendarForBusiness/);
   assert.match(source, /sanitizeFaqs/);
 });

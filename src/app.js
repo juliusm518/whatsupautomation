@@ -1,4 +1,6 @@
 import {
+  buildAvailabilityPreview,
+  calendarForBusiness,
   createDemoWorkspace,
   createStarterConversation,
   detectIntent,
@@ -48,6 +50,7 @@ function render() {
   state.activeConversationId = activeConversation?.id || null;
   const analytics = getAnalytics(conversations);
   const action = actionButtonState();
+  const setupProgress = onboardingProgress(business, conversations);
 
   app.innerHTML = `
     ${toastMarkup()}
@@ -64,6 +67,7 @@ function render() {
         ${workspace.businesses.map((item) => `<option value="${item.id}" ${item.id === business.id ? "selected" : ""}>${item.name}</option>`).join("")}
       </select>
       <nav class="nav">
+        <a href="#setup">${icons.shield}<span>Setup</span></a>
         <a href="#inbox">${icons.message}<span>Inbox</span></a>
         <a href="#automation">${icons.bolt}<span>Automation</span></a>
         <a href="#analytics">${icons.chart}<span>Analytics</span></a>
@@ -94,6 +98,17 @@ function render() {
         ${metricCard("Qualified leads", analytics.leads, `${analytics.leadRate}% lead rate`, "bolt")}
         ${metricCard("Human escalations", analytics.escalations, "High intent protected", "shield")}
         ${metricCard("After-hours saves", analytics.afterHours, "Replies while closed", "clock")}
+      </section>
+
+      <section class="panel setup-panel" id="setup">
+        <div class="panel-header">
+          <div>
+            <p class="eyebrow">Pilot Onboarding</p>
+            <h2>Go-live checklist</h2>
+          </div>
+          <span class="pill">${setupProgress.done}/${setupProgress.total} ready</span>
+        </div>
+        ${onboardingChecklist(business, conversations)}
       </section>
 
       <section class="workspace-grid" id="inbox">
@@ -190,6 +205,10 @@ function render() {
         </div>
 
         <div class="panel settings-panel">
+          ${calendarPanel(business)}
+        </div>
+
+        <div class="panel settings-panel">
           <div class="panel-header">
             <div>
               <p class="eyebrow">Knowledge Settings</p>
@@ -228,6 +247,65 @@ function metricCard(label, value, detail, icon) {
       </div>
     </article>
   `;
+}
+
+function onboardingProgress(business, conversations) {
+  const items = onboardingItems(business, conversations);
+  return {
+    done: items.filter((item) => item.done).length,
+    total: items.length
+  };
+}
+
+function onboardingChecklist(business, conversations) {
+  return `
+    <div class="setup-checklist">
+      ${onboardingItems(business, conversations).map((item) => `
+        <article class="setup-step ${item.done ? "done" : "pending"}">
+          <div class="setup-icon">${item.done ? icons.shield : icons.clock}</div>
+          <div>
+            <strong>${item.label}</strong>
+            <span>${item.detail}</span>
+          </div>
+        </article>
+      `).join("")}
+    </div>
+  `;
+}
+
+function onboardingItems(business, conversations) {
+  const hasProfile = Boolean(business.name && business.owner && business.whatsappNumber && business.appointmentLabel);
+  const hasKnowledge = (business.faqs || []).filter((faq) => faq.question && faq.answer).length >= 3;
+  const hasTestConversation = conversations.some((conversation) => conversation.messages.some((message) => message.from === "assistant"));
+  const hasServerSync = /synced|ready|saved/i.test(`${state.syncStatus} ${state.saveStatus} ${state.knowledgeStatus}`);
+
+  return [
+    {
+      label: "Business profile",
+      detail: hasProfile ? `${business.name} is ready for customer-facing replies.` : "Complete the business name, owner, WhatsApp number, and booking label.",
+      done: hasProfile
+    },
+    {
+      label: "Knowledge base",
+      detail: hasKnowledge ? `${business.faqs.length} FAQ answers are available for automation.` : "Add at least three FAQ answers before pilot testing.",
+      done: hasKnowledge
+    },
+    {
+      label: "Reply test",
+      detail: hasTestConversation ? "A sample customer reply has been generated for this business." : "Run a test message before connecting a live number.",
+      done: hasTestConversation
+    },
+    {
+      label: "WhatsApp webhook",
+      detail: "Confirm Meta webhook verification, phone number ID, and access token in Render.",
+      done: false
+    },
+    {
+      label: "Server sync",
+      detail: hasServerSync ? "Dashboard changes are connected to the server workflow." : "Refresh from server and save settings after setup changes.",
+      done: hasServerSync
+    }
+  ];
 }
 
 function conversationListItem(conversation) {
@@ -329,7 +407,46 @@ function replyTestPanel(business) {
   `;
 }
 
+function calendarPanel(business) {
+  const availability = buildAvailabilityPreview(business);
+  const calendar = availability.calendar;
+  const status = availability.connected ? "Connected" : "Not connected";
+
+  return `
+    <div class="panel-header">
+      <div>
+        <p class="eyebrow">Booking Calendar</p>
+        <h2>Google availability</h2>
+      </div>
+      <span class="pill">${status}</span>
+    </div>
+    <div class="calendar-summary">
+      <div>
+        <span>Calendar</span>
+        <strong>${calendar.calendarId || "Not attached"}</strong>
+      </div>
+      <div>
+        <span>Appointment</span>
+        <strong>${business.appointmentLabel || "booking"} - ${calendar.bookingDurationMinutes} min</strong>
+      </div>
+      <div>
+        <span>Booked slots</span>
+        <strong>${availability.bookedCount}</strong>
+      </div>
+    </div>
+    <div class="slot-list">
+      ${availability.openSlots.map((slot) => `
+        <span class="slot-chip">
+          <strong>${slot.label}</strong>
+          <small>${slot.start}-${slot.end}</small>
+        </span>
+      `).join("") || emptyState("No open slots found in the test window.")}
+    </div>
+  `;
+}
+
 function businessSettingsForm(business) {
+  const calendar = calendarForBusiness(business);
   return `
     <form class="settings-form" id="business-settings-form">
       <div class="form-grid">
@@ -352,6 +469,18 @@ function businessSettingsForm(business) {
         <label>
           Appointment label
           <input name="appointmentLabel" value="${escapeAttribute(business.appointmentLabel || "")}" />
+        </label>
+        <label>
+          Google Calendar ID
+          <input name="calendarId" value="${escapeAttribute(calendar.calendarId)}" placeholder="primary" />
+        </label>
+        <label>
+          Booking duration
+          <input name="bookingDurationMinutes" type="number" min="15" step="15" value="${calendar.bookingDurationMinutes}" />
+        </label>
+        <label>
+          Buffer minutes
+          <input name="bufferMinutes" type="number" min="0" step="5" value="${calendar.bufferMinutes}" />
         </label>
         <label>
           Time zone
@@ -601,6 +730,13 @@ function bindEvents() {
     business.owner = cleanValue(form.get("owner"), business.owner);
     business.whatsappNumber = cleanValue(form.get("whatsappNumber"), business.whatsappNumber);
     business.appointmentLabel = cleanValue(form.get("appointmentLabel"), business.appointmentLabel);
+    business.calendar = {
+      ...calendarForBusiness(business),
+      calendarId: cleanValue(form.get("calendarId"), ""),
+      connected: Boolean(cleanValue(form.get("calendarId"), "")),
+      bookingDurationMinutes: cleanNumber(form.get("bookingDurationMinutes"), 60),
+      bufferMinutes: cleanNumber(form.get("bufferMinutes"), 15)
+    };
     business.businessHours.timeZone = cleanValue(form.get("timeZone"), business.businessHours.timeZone);
     business.businessHours.open = form.get("open") || business.businessHours.open;
     business.businessHours.close = form.get("close") || business.businessHours.close;
@@ -1027,6 +1163,11 @@ function updateBusinessSummary() {
 function cleanValue(value, fallback) {
   const cleaned = String(value || "").trim();
   return cleaned || fallback;
+}
+
+function cleanNumber(value, fallback) {
+  const number = Number(value);
+  return Number.isFinite(number) && number >= 0 ? number : fallback;
 }
 
 function escapeHtml(value) {

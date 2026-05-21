@@ -30,7 +30,11 @@ export function createDemoWorkspace() {
           answer: "We are at Tampines Central, a 5-minute walk from the MRT."
         }
       ],
-      appointmentLabel: "trial lesson"
+      appointmentLabel: "trial lesson",
+      calendar: defaultCalendar({
+        calendarId: "primary",
+        connected: true
+      })
     },
     {
       id: "aircon-pro",
@@ -60,7 +64,8 @@ export function createDemoWorkspace() {
           answer: "We cover all HDB and condo estates islandwide in Singapore."
         }
       ],
-      appointmentLabel: "service slot"
+      appointmentLabel: "service slot",
+      calendar: defaultCalendar()
     },
     {
       id: "plumbing-care",
@@ -90,7 +95,8 @@ export function createDemoWorkspace() {
           answer: "We handle leaking pipes, clogged sinks, toilet flush issues, tap replacement, and water heater connections."
         }
       ],
-      appointmentLabel: "repair visit"
+      appointmentLabel: "repair visit",
+      calendar: defaultCalendar()
     },
     {
       id: "reno-studio",
@@ -120,7 +126,8 @@ export function createDemoWorkspace() {
           answer: "Small upgrades can take 2 to 4 weeks, while full-home projects usually need 8 to 12 weeks after approvals."
         }
       ],
-      appointmentLabel: "renovation consultation"
+      appointmentLabel: "renovation consultation",
+      calendar: defaultCalendar()
     },
     {
       id: "hawker-kitchen",
@@ -150,7 +157,8 @@ export function createDemoWorkspace() {
           answer: "We are at Bedok Food Centre, stall 18, usually open for lunch from Monday to Saturday."
         }
       ],
-      appointmentLabel: "bulk order pickup"
+      appointmentLabel: "bulk order pickup",
+      calendar: defaultCalendar()
     },
     {
       id: "bakery-bites",
@@ -180,7 +188,8 @@ export function createDemoWorkspace() {
           answer: "Delivery is available islandwide from $12, or customers can self-collect from our Tampines bakery."
         }
       ],
-      appointmentLabel: "cake order"
+      appointmentLabel: "cake order",
+      calendar: defaultCalendar()
     }
   ];
 
@@ -377,6 +386,68 @@ export function createStarterConversation(business, now = new Date()) {
       timestamp: now.toISOString()
     }
   }).conversation;
+}
+
+export function defaultCalendar(overrides = {}) {
+  return {
+    provider: "google",
+    calendarId: "",
+    connected: false,
+    bookingDurationMinutes: 60,
+    bufferMinutes: 15,
+    busyWindows: [],
+    ...overrides
+  };
+}
+
+export function calendarForBusiness(business = {}) {
+  const calendar = business.calendar || {};
+  return defaultCalendar({
+    ...calendar,
+    calendarId: String(calendar.calendarId || "").trim(),
+    connected: Boolean(calendar.connected && calendar.calendarId),
+    bookingDurationMinutes: positiveInteger(calendar.bookingDurationMinutes, 60),
+    bufferMinutes: positiveInteger(calendar.bufferMinutes, 15),
+    busyWindows: Array.isArray(calendar.busyWindows) ? calendar.busyWindows : []
+  });
+}
+
+export function buildAvailabilityPreview(business, options = {}) {
+  const calendar = calendarForBusiness(business);
+  const hours = business?.businessHours || {};
+  const now = options.now || new Date();
+  const slotLimit = positiveInteger(options.slotLimit, 8);
+  const duration = calendar.bookingDurationMinutes;
+  const slots = [];
+
+  for (let dayOffset = 0; dayOffset < 14 && slots.length < slotLimit; dayOffset += 1) {
+    const date = addDays(now, dayOffset);
+    const local = localDateParts(date, hours.timeZone || DEFAULT_TIME_ZONE);
+    if (!(hours.days || []).includes(local.weekday)) {
+      continue;
+    }
+
+    const dateKey = `${local.year}-${pad(local.month)}-${pad(local.day)}`;
+    for (let minutes = toMinutes(hours.open); minutes + duration <= toMinutes(hours.close) && slots.length < slotLimit; minutes += duration + calendar.bufferMinutes) {
+      const start = `${dateKey}T${minutesToTime(minutes)}`;
+      const end = `${dateKey}T${minutesToTime(minutes + duration)}`;
+      if (!isBusy(start, end, calendar.busyWindows)) {
+        slots.push({
+          date: dateKey,
+          start: minutesToTime(minutes),
+          end: minutesToTime(minutes + duration),
+          label: `${formatSlotDate(dateKey)} ${formatDisplayTime(minutes)}`
+        });
+      }
+    }
+  }
+
+  return {
+    calendar,
+    connected: calendar.connected,
+    openSlots: slots,
+    bookedCount: calendar.busyWindows.length
+  };
 }
 
 export function findBusiness(businesses, businessId) {
@@ -632,4 +703,60 @@ function titleCase(value) {
 function toMinutes(value) {
   const [hour, minute] = value.split(":").map(Number);
   return hour * 60 + minute;
+}
+
+function minutesToTime(minutes) {
+  return `${pad(Math.floor(minutes / 60))}:${pad(minutes % 60)}`;
+}
+
+function pad(value) {
+  return String(value).padStart(2, "0");
+}
+
+function positiveInteger(value, fallback) {
+  const number = Number(value);
+  return Number.isInteger(number) && number > 0 ? number : fallback;
+}
+
+function addDays(date, days) {
+  const next = new Date(date);
+  next.setUTCDate(next.getUTCDate() + days);
+  return next;
+}
+
+function localDateParts(date, timeZone) {
+  const parts = new Intl.DateTimeFormat("en-SG", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    weekday: "short"
+  }).formatToParts(date);
+  const weekdayMap = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 0 };
+
+  return {
+    year: parts.find((part) => part.type === "year").value,
+    month: parts.find((part) => part.type === "month").value,
+    day: parts.find((part) => part.type === "day").value,
+    weekday: weekdayMap[parts.find((part) => part.type === "weekday").value]
+  };
+}
+
+function isBusy(start, end, busyWindows = []) {
+  return busyWindows.some((window) => start < window.end && end > window.start);
+}
+
+function formatSlotDate(dateKey) {
+  return new Intl.DateTimeFormat("en-SG", {
+    weekday: "short",
+    day: "2-digit",
+    month: "short"
+  }).format(new Date(`${dateKey}T00:00:00+08:00`));
+}
+
+function formatDisplayTime(minutes) {
+  return new Intl.DateTimeFormat("en-SG", {
+    hour: "numeric",
+    minute: "2-digit"
+  }).format(new Date(`2026-01-01T${minutesToTime(minutes)}:00+08:00`));
 }

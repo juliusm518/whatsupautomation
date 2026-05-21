@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  calendarForBusiness,
   createDemoWorkspace,
   createStarterConversation,
   findBusiness,
@@ -190,6 +191,9 @@ function sanitizeBusinessSettings(input, fallback) {
     owner: cleanText(source.owner, fallback.owner),
     whatsappNumber: cleanText(source.whatsappNumber, fallback.whatsappNumber),
     appointmentLabel: cleanText(source.appointmentLabel, fallback.appointmentLabel),
+    calendar: calendarForBusiness({
+      calendar: source.calendar || fallback.calendar
+    }),
     autoReplyEnabled: typeof source.autoReplyEnabled === "boolean" ? source.autoReplyEnabled : fallback.autoReplyEnabled,
     escalationEnabled: typeof source.escalationEnabled === "boolean" ? source.escalationEnabled : fallback.escalationEnabled,
     businessHours: {
