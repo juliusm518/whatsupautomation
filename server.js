@@ -406,11 +406,13 @@ async function processIncomingMessages(body, { sendToWhatsApp }) {
       business,
       message: incoming
     });
-    result.reply.text = await generateAiReply({
-      business,
-      customerMessage: incoming.text,
-      engineReply: result.reply.text
-    });
+    if (!isProtectedEngineReply(result.reply.text)) {
+      result.reply.text = await generateAiReply({
+        business,
+        customerMessage: incoming.text,
+        engineReply: result.reply.text
+      });
+    }
     result.conversation.messages[1].text = result.reply.text;
 
     if (incoming.customerName) {
@@ -435,6 +437,10 @@ async function processIncomingMessages(body, { sendToWhatsApp }) {
   }
 
   return processed.length === 1 ? processed[0] : { ok: true, processed: processed.length, results: processed };
+}
+
+function isProtectedEngineReply(replyText) {
+  return /already booked/i.test(replyText);
 }
 
 const server = createServer(async (request, response) => {
