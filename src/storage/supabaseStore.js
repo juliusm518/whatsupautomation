@@ -1,3 +1,5 @@
+import { calendarForBusiness, defaultCalendar } from "../core/automationEngine.js";
+
 const SUPABASE_TABLES = {
   businesses: "replypilot_businesses",
   faqs: "replypilot_faqs",
@@ -30,6 +32,11 @@ export async function loadWorkspaceFromSupabase() {
       escalationEnabled: business.escalation_enabled,
       businessHours: business.business_hours,
       appointmentLabel: business.appointment_label,
+      calendar: calendarForBusiness({
+        calendar: business.id === "tuition-hub"
+          ? defaultCalendar({ calendarId: "primary", connected: true })
+          : defaultCalendar()
+      }),
       faqs: faqs
         .filter((faq) => faq.business_id === business.id)
         .map((faq) => ({
