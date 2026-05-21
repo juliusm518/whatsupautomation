@@ -327,6 +327,64 @@ h2 {
   margin-bottom: 16px;
 }
 
+.setup-panel {
+  margin-bottom: 16px;
+}
+
+.setup-checklist {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.setup-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-height: 104px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.setup-step.done {
+  border-color: rgba(15, 143, 101, 0.32);
+  background: #f3fbf7;
+}
+
+.setup-step.pending {
+  border-color: rgba(247, 185, 85, 0.46);
+  background: #fffaf0;
+}
+
+.setup-icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  flex: 0 0 auto;
+  background: var(--mint);
+  color: var(--brand-dark);
+}
+
+.setup-step.pending .setup-icon {
+  background: #fff1d6;
+  color: #855a11;
+}
+
+.setup-step strong,
+.setup-step span {
+  display: block;
+}
+
+.setup-step span {
+  margin-top: 5px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
 .metric-card,
 .panel {
   background: rgba(255, 255, 255, 0.92);
@@ -629,6 +687,43 @@ h2 {
   line-height: 1.5;
 }
 
+.calendar-summary {
+  display: grid;
+  gap: 10px;
+}
+
+.calendar-summary div {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.calendar-summary span,
+.slot-chip small {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.slot-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.slot-chip {
+  display: grid;
+  gap: 3px;
+  min-width: 132px;
+  padding: 10px 12px;
+  border: 1px solid rgba(15, 143, 101, 0.28);
+  border-radius: 8px;
+  background: #f3fbf7;
+}
+
 .day-chip {
   position: relative;
   display: inline-flex;
@@ -810,12 +905,13 @@ h2 {
 
   .nav {
     grid-column: 1 / -1;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
   }
 
   .metrics,
   .automation-grid,
-  .settings-grid {
+  .settings-grid,
+  .setup-checklist {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -834,6 +930,7 @@ h2 {
   .metrics,
   .automation-grid,
   .settings-grid,
+  .setup-checklist,
   .form-grid,
   .nav {
     grid-template-columns: 1fr;
