@@ -16,6 +16,7 @@ test("ships pilot templates for the first six target business types", () => {
   ]);
   assert.equal(workspace.businesses.every((business) => business.faqs.length >= 3), true);
   assert.equal(workspace.businesses.every((business) => business.appointmentLabel), true);
+  assert.equal(workspace.businesses.find((business) => business.id === "tuition-hub").calendar.calendarId, "primary");
 
   const conversationBusinessIds = new Set(workspace.conversations.map((conversation) => conversation.businessId));
   for (const business of workspace.businesses) {
