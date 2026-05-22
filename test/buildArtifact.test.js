@@ -6,6 +6,8 @@ test("build artifact includes dashboard assets and server integration modules", 
   const buildScript = await readFile(new URL("../scripts/build.js", import.meta.url), "utf8");
 
   assert.match(buildScript, /src\/buttonFeedback\.css/);
+  assert.match(buildScript, /privacy\.html/);
+  assert.match(buildScript, /terms\.html/);
   assert.match(buildScript, /src\/buttonFeedback\.js/);
   assert.match(buildScript, /src\/onboardingChecklist\.css/);
   assert.match(buildScript, /src\/onboardingChecklist\.js/);

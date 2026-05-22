@@ -7,6 +7,8 @@ await mkdir(join(dist, "src"), { recursive: true });
 
 const files = [
   "index.html",
+  "privacy.html",
+  "terms.html",
   "server.js",
   "package.json",
   "src/app.js",

@@ -18,6 +18,13 @@ npm run check
 
 The project intentionally has no runtime package dependencies. The local automation engine is deterministic and tested, while the server includes adapter points for OpenAI and WhatsApp Cloud API credentials.
 
+## Public compliance pages
+
+The hosted app exposes public pages for OAuth review and customer trust:
+
+- `/privacy.html`
+- `/terms.html`
+
 ## Supabase
 
 Apply `supabase/migrations/001_initial_schema.sql` to create isolated `replypilot_*` tables for tuition centers and aircon servicing businesses. Then set:
