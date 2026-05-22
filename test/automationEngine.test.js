@@ -9,7 +9,8 @@ import {
   extractLead,
   handleIncomingMessage,
   isWithinBusinessHours,
-  matchFaq
+  matchFaq,
+  requestedAppointmentSlotForMessage
 } from "../src/core/automationEngine.js";
 
 const workspace = createDemoWorkspace();
@@ -131,4 +132,16 @@ test("uses the latest customer message when contextual follow-ups include older 
   assert.equal(result.intent, "appointment");
   assert.equal(result.lead.preferredTime, "Today");
   assert.match(result.reply.text, /already booked/i);
+});
+
+test("extracts a concrete appointment slot for calendar booking", () => {
+  const slot = requestedAppointmentSlotForMessage(
+    "Hi, my name is Julius. Please book P5 math tomorrow at 2pm. My number is 9123 4567.",
+    tuition,
+    new Date("2026-05-22T02:00:00.000Z")
+  );
+
+  assert.equal(slot.start, "2026-05-23T14:00");
+  assert.equal(slot.end, "2026-05-23T15:00");
+  assert.match(slot.label, /Sat|23 May|2:00/i);
 });

@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  createGoogleCalendarBooking,
   fetchGoogleCalendarBusyWindows,
   googleCalendarConfigured,
   hydrateBusinessCalendarBusyWindows
@@ -91,4 +92,50 @@ test("hydrates a connected business calendar with live busy windows", async () =
       end: "2026-05-22T12:00"
     }
   ]);
+});
+
+test("creates a Google Calendar event for a confirmed booking", async () => {
+  const calls = [];
+  const booking = await createGoogleCalendarBooking({
+    business: {
+      name: "BrightPath Tuition",
+      type: "Tuition Centre",
+      appointmentLabel: "trial lesson",
+      businessHours: { timeZone: "Asia/Singapore" },
+      calendar: {
+        connected: true,
+        calendarId: "primary"
+      }
+    },
+    lead: {
+      name: "Julius",
+      phone: "91234567",
+      service: "P5 Math"
+    },
+    slot: {
+      start: "2026-05-23T14:00",
+      end: "2026-05-23T15:00",
+      label: "Sat, 23 May 2:00 pm"
+    },
+    env: { GOOGLE_CALENDAR_ACCESS_TOKEN: "token" },
+    fetchImpl: async (url, options) => {
+      calls.push({ url, options });
+      return {
+        ok: true,
+        json: async () => ({
+          id: "event-123",
+          htmlLink: "https://calendar.google.com/event?eid=event-123"
+        })
+      };
+    }
+  });
+
+  assert.equal(booking.created, true);
+  assert.equal(booking.eventId, "event-123");
+  assert.equal(calls[0].url, "https://www.googleapis.com/calendar/v3/calendars/primary/events");
+  const payload = JSON.parse(calls[0].options.body);
+  assert.match(payload.summary, /BrightPath Tuition/);
+  assert.equal(payload.start.dateTime, "2026-05-23T14:00:00+08:00");
+  assert.equal(payload.end.dateTime, "2026-05-23T15:00:00+08:00");
+  assert.match(payload.description, /91234567/);
 });
