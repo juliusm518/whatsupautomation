@@ -733,14 +733,15 @@ function findAppointmentConflict(text, business, now) {
 }
 
 function requestedAppointmentSlot(text, business, now) {
-  const time = requestedTime(text);
+  const currentText = currentCustomerRequest(text);
+  const time = requestedTime(currentText);
   if (!time) {
     return null;
   }
 
   const hours = business.businessHours || {};
   const timeZone = hours.timeZone || DEFAULT_TIME_ZONE;
-  const lowerText = String(text || "").toLowerCase();
+  const lowerText = String(currentText || "").toLowerCase();
   const dayOffset = lowerText.includes("tomorrow") ? 1 : 0;
   const local = localDateParts(addDays(now, dayOffset), timeZone);
   const date = `${local.year}-${pad(local.month)}-${pad(local.day)}`;
@@ -753,6 +754,20 @@ function requestedAppointmentSlot(text, business, now) {
     end: `${date}T${minutesToTime(endMinutes)}`,
     label: `${formatSlotDate(date)} ${formatDisplayTime(startMinutes)}`
   };
+}
+
+function currentCustomerRequest(text) {
+  const value = String(text || "");
+  const marker = "Latest customer message:";
+  const markerIndex = value.indexOf(marker);
+  if (markerIndex < 0) {
+    return value;
+  }
+
+  return value
+    .slice(markerIndex + marker.length)
+    .split("\nPrevious chat context:")[0]
+    .trim();
 }
 
 function requestedTime(text) {
