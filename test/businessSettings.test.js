@@ -37,11 +37,17 @@ test("dashboard includes editable business settings controls", async () => {
   assert.match(source, /Test inbox/);
   assert.match(source, /test-inbox-form/);
   assert.match(source, /testInboxScenarios/);
+  assert.match(source, /testScenarioProfile/);
   assert.match(source, /data-test-phone/);
   assert.match(source, /data-test-scenario/);
   assert.match(source, /Send test message/);
   assert.match(source, /Test message sent/);
   assert.match(source, /upsertLocalConversation/);
+  assert.match(source, /how much is aircon servicing/);
+  assert.match(source, /plumbing repair visit/);
+  assert.match(source, /renovation consultation/);
+  assert.match(source, /bulk order pickup/);
+  assert.match(source, /cake order/);
   assert.match(source, /getAssistantReply/);
   assert.match(source, /\/api\/workspace/);
   assert.match(source, /Synced from server/);
