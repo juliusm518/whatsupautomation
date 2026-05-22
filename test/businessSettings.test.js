@@ -131,3 +131,21 @@ test("server persists business settings for reply generation", async () => {
   assert.match(source, /fallback\.busyWindows/);
   assert.match(source, /sanitizeFaqs/);
 });
+
+test("server continues chats by business and phone number", async () => {
+  const source = await readFile(new URL("../server.js", import.meta.url), "utf8");
+  const store = await readFile(new URL("../src/storage/supabaseStore.js", import.meta.url), "utf8");
+
+  assert.match(source, /function normalizePhone/);
+  assert.match(source, /function findLatestConversationForIncoming/);
+  assert.match(source, /function buildContextualIncoming/);
+  assert.match(source, /function mergeConversation/);
+  assert.match(source, /Latest customer message/);
+  assert.match(source, /messagesToSave/);
+  assert.match(source, /upsertWorkspaceConversation/);
+  assert.match(store, /options = \{\}/);
+  assert.match(store, /options\.messages/);
+  assert.match(store, /on_conflict=id/);
+  assert.match(store, /on_conflict=conversation_id/);
+  assert.match(store, /resolution=merge-duplicates/);
+});

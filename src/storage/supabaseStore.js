@@ -82,9 +82,12 @@ export async function loadWorkspaceFromSupabase() {
   };
 }
 
-export async function saveConversationToSupabase(conversation) {
-  await supabaseRequest(SUPABASE_TABLES.conversations, "", {
+export async function saveConversationToSupabase(conversation, options = {}) {
+  const messages = options.messages || conversation.messages;
+
+  await supabaseRequest(SUPABASE_TABLES.conversations, "?on_conflict=id", {
     method: "POST",
+    prefer: "resolution=merge-duplicates,return=representation",
     body: {
       id: conversation.id,
       business_id: conversation.businessId,
@@ -92,32 +95,37 @@ export async function saveConversationToSupabase(conversation) {
       customer_phone: conversation.customerPhone,
       status: conversation.status,
       intent: conversation.intent,
-      summary: conversation.summary
+      summary: conversation.summary,
+      updated_at: new Date().toISOString()
     }
   });
 
-  await supabaseRequest(SUPABASE_TABLES.leads, "", {
+  await supabaseRequest(SUPABASE_TABLES.leads, "?on_conflict=conversation_id", {
     method: "POST",
+    prefer: "resolution=merge-duplicates,return=representation",
     body: {
       conversation_id: conversation.id,
       business_id: conversation.businessId,
       name: conversation.lead.name || null,
       phone: conversation.lead.phone || null,
       service: conversation.lead.service || null,
-      preferred_time: conversation.lead.preferredTime || null
+      preferred_time: conversation.lead.preferredTime || null,
+      updated_at: new Date().toISOString()
     }
   });
 
-  await supabaseRequest(SUPABASE_TABLES.messages, "", {
-    method: "POST",
-    body: conversation.messages.map((message) => ({
-      conversation_id: conversation.id,
-      business_id: conversation.businessId,
-      sender: message.from,
-      body: message.text,
-      created_at: message.timestamp
-    }))
-  });
+  if (messages.length) {
+    await supabaseRequest(SUPABASE_TABLES.messages, "", {
+      method: "POST",
+      body: messages.map((message) => ({
+        conversation_id: conversation.id,
+        business_id: conversation.businessId,
+        sender: message.from,
+        body: message.text,
+        created_at: message.timestamp
+      }))
+    });
+  }
 }
 
 export async function deleteBusinessConversationsFromSupabase(businessId) {
@@ -170,7 +178,7 @@ async function supabaseRequest(table, query = "", options = {}) {
       apikey: process.env.SUPABASE_SERVICE_ROLE_KEY,
       authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
       "content-type": "application/json",
-      prefer: "return=representation"
+      prefer: options.prefer || "return=representation"
     },
     body: options.body ? JSON.stringify(options.body) : undefined
   });

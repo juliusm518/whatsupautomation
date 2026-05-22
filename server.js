@@ -245,6 +245,97 @@ function isTimeValue(value) {
   return typeof value === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
 }
 
+function normalizePhone(value) {
+  const digits = String(value || "").replace(/\D/g, "");
+  if (digits.length === 8 && /^[689]/.test(digits)) {
+    return `65${digits}`;
+  }
+
+  return digits;
+}
+
+function findLatestConversationForIncoming(conversations, incoming, businessId) {
+  const incomingPhone = normalizePhone(incoming.from);
+  if (!incomingPhone) {
+    return null;
+  }
+
+  return conversations
+    .filter((conversation) => conversation.businessId === businessId)
+    .filter((conversation) => normalizePhone(conversation.customerPhone) === incomingPhone)
+    .sort((left, right) => latestConversationTime(right) - latestConversationTime(left))[0] || null;
+}
+
+function latestConversationTime(conversation) {
+  const timestamps = (conversation.messages || []).map((message) => Date.parse(message.timestamp || ""));
+  return Math.max(Date.parse(conversation.updatedAt || ""), Date.parse(conversation.createdAt || ""), ...timestamps, 0);
+}
+
+function buildContextualIncoming(incoming, existingConversation) {
+  if (!existingConversation) {
+    return incoming;
+  }
+
+  const previousCustomerMessage = [...(existingConversation.messages || [])]
+    .reverse()
+    .find((message) => message.from === "customer")?.text;
+  const context = [
+    existingConversation.summary && `Previous chat summary: ${existingConversation.summary}.`,
+    existingConversation.lead?.service && `Previous service: ${existingConversation.lead.service}.`,
+    existingConversation.lead?.preferredTime && `Previous requested time: ${existingConversation.lead.preferredTime}.`,
+    previousCustomerMessage && `Previous customer message: ${previousCustomerMessage}.`
+  ].filter(Boolean).join(" ");
+
+  if (!context) {
+    return incoming;
+  }
+
+  return {
+    ...incoming,
+    text: `${context}\nLatest customer message: ${incoming.text}`
+  };
+}
+
+function mergeConversation(existingConversation, nextConversation, newMessages) {
+  const lead = mergeLead(existingConversation.lead, nextConversation.lead);
+  const customerName = nextConversation.customerName === "New WhatsApp lead"
+    ? existingConversation.customerName || nextConversation.customerName
+    : nextConversation.customerName;
+
+  return {
+    ...existingConversation,
+    ...nextConversation,
+    id: existingConversation.id,
+    customerName,
+    customerPhone: existingConversation.customerPhone || nextConversation.customerPhone,
+    summary: nextConversation.summary || existingConversation.summary,
+    lead,
+    messages: [
+      ...(existingConversation.messages || []),
+      ...newMessages
+    ]
+  };
+}
+
+function mergeLead(existingLead = {}, nextLead = {}) {
+  return {
+    name: nextLead.name || existingLead.name || "",
+    phone: nextLead.phone || existingLead.phone || "",
+    service: nextLead.service || existingLead.service || "",
+    preferredTime: nextLead.preferredTime || existingLead.preferredTime || ""
+  };
+}
+
+function upsertWorkspaceConversation(targetWorkspace, conversation) {
+  const index = targetWorkspace.conversations.findIndex((item) => item.id === conversation.id);
+  if (index >= 0) {
+    targetWorkspace.conversations[index] = conversation;
+    return;
+  }
+
+  targetWorkspace.conversations.unshift(conversation);
+}
+
 async function handleApi(request, response) {
   const url = new URL(request.url, `http://${request.headers.host}`);
 
@@ -413,29 +504,40 @@ async function processIncomingMessages(body, { sendToWhatsApp }) {
       business = sanitizeBusinessSettings(body.businessSnapshot, business);
     }
 
+    const existingConversation = findLatestConversationForIncoming(activeWorkspace.conversations, incoming, business.id);
+    const contextualIncoming = buildContextualIncoming(incoming, existingConversation);
     const result = handleIncomingMessage({
       business,
-      message: incoming
+      message: contextualIncoming
     });
+    result.conversation.messages[0].text = incoming.text;
     if (!isProtectedEngineReply(result.reply.text)) {
       result.reply.text = await generateAiReply({
         business,
-        customerMessage: incoming.text,
+        customerMessage: contextualIncoming.text,
         engineReply: result.reply.text
       });
     }
     result.conversation.messages[1].text = result.reply.text;
+    const messagesToSave = result.conversation.messages;
 
     if (incoming.customerName) {
       result.conversation.customerName = incoming.customerName;
       result.conversation.lead.name ||= incoming.customerName;
     }
 
-    if (supabaseConfigured()) {
-      await saveConversationToSupabase(result.conversation);
-    } else {
-      workspace.conversations.unshift(result.conversation);
+    if (existingConversation) {
+      result.conversation = mergeConversation(existingConversation, result.conversation, messagesToSave);
     }
+
+    if (supabaseConfigured()) {
+      await saveConversationToSupabase(result.conversation, {
+        messages: existingConversation ? messagesToSave : result.conversation.messages
+      });
+    } else {
+      upsertWorkspaceConversation(workspace, result.conversation);
+    }
+    upsertWorkspaceConversation(activeWorkspace, result.conversation);
 
     const delivery = sendToWhatsApp && business.autoReplyEnabled
       ? await sendWhatsAppText({
