@@ -130,6 +130,8 @@ test("server persists business settings for reply generation", async () => {
   assert.match(source, /mergeCalendarSettings/);
   assert.match(source, /fallback\.busyWindows/);
   assert.match(source, /sanitizeFaqs/);
+  assert.match(source, /hydrateBusinessCalendarBusyWindows/);
+  assert.match(source, /hydrateBusinessCalendarForIncoming/);
 });
 
 test("server continues chats by business and phone number", async () => {
