@@ -452,12 +452,14 @@ function testInboxPhones() {
 }
 
 function testInboxScenarios(business) {
+  const profile = testScenarioProfile(business);
+
   return [
     {
       id: "faq",
       label: "FAQ",
-      preview: "Ask price or location",
-      text: "Hi, where are you located and how much is your service?"
+      preview: profile.faqPreview,
+      text: profile.faq
     },
     {
       id: "follow-up",
@@ -468,22 +470,91 @@ function testInboxScenarios(business) {
     {
       id: "booking",
       label: "Booking",
-      preview: "Request a slot",
-      text: `Hi, this is Jasmine 9123 4567. Can I book ${business.appointmentLabel || "an appointment"} today at 4pm?`
+      preview: profile.bookingPreview,
+      text: profile.booking
     },
     {
       id: "duplicate",
       label: "Duplicate",
       preview: "Try same slot again",
-      text: `Hi, this is Marcus 9123 9999. Can I book ${business.appointmentLabel || "an appointment"} today at 4pm?`
+      text: profile.duplicate
     },
     {
       id: "human",
       label: "Human",
       preview: "Escalation request",
-      text: "Urgent, can a human call me now? I need help before booking."
+      text: profile.human
     }
   ];
+}
+
+function testScenarioProfile(business) {
+  const type = `${business?.type || ""} ${business?.name || ""}`.toLowerCase();
+  const fallback = {
+    faqPreview: "Ask price or location",
+    faq: "Hi, where are you located and how much is your service?",
+    bookingPreview: "Request a slot",
+    booking: `Hi, this is Jasmine 9123 4567. Can I book ${business.appointmentLabel || "an appointment"} today at 4pm?`,
+    duplicate: `Hi, this is Marcus 9123 9999. Can I book ${business.appointmentLabel || "an appointment"} today at 4pm?`,
+    human: "Urgent, can a human call me now? I need help before booking."
+  };
+
+  if (type.includes("aircon")) {
+    return {
+      faqPreview: "Ask servicing price",
+      faq: "Hi, how much is aircon servicing for 3 units?",
+      bookingPreview: "Book service slot",
+      booking: "Hi, this is Jasmine 9123 4567. Can I book aircon servicing today at 4pm?",
+      duplicate: "Hi, this is Marcus 9123 9999. Can I book aircon servicing today at 4pm?",
+      human: "Urgent, my aircon is leaking badly. Can a human call me now?"
+    };
+  }
+
+  if (type.includes("plumbing")) {
+    return {
+      faqPreview: "Ask repair price",
+      faq: "Hi, how much is plumbing repair for a clogged sink?",
+      bookingPreview: "Book repair visit",
+      booking: "Hi, this is Jasmine 9123 4567. Can I book a plumbing repair visit today at 4pm?",
+      duplicate: "Hi, this is Marcus 9123 9999. Can I book a plumbing repair visit today at 4pm?",
+      human: "Urgent, my kitchen pipe is leaking badly. Can a human call me now?"
+    };
+  }
+
+  if (type.includes("renovation")) {
+    return {
+      faqPreview: "Ask renovation quote",
+      faq: "Hi, do you provide renovation quotes?",
+      bookingPreview: "Book consultation",
+      booking: "Hi, this is Jasmine 9123 4567. Can I schedule a renovation consultation today at 4pm?",
+      duplicate: "Hi, this is Marcus 9123 9999. Can I schedule a renovation consultation today at 4pm?",
+      human: "Urgent, can a human call me about a renovation issue now?"
+    };
+  }
+
+  if (type.includes("hawker") || type.includes("chicken rice")) {
+    return {
+      faqPreview: "Ask bulk order",
+      faq: "Hi, can I place a bulk order?",
+      bookingPreview: "Book pickup",
+      booking: "Hi, this is Jasmine 9123 4567. Can I book a bulk order pickup today at 12pm?",
+      duplicate: "Hi, this is Marcus 9123 9999. Can I book a bulk order pickup today at 12pm?",
+      human: "Urgent, can a human call me about a large lunch order now?"
+    };
+  }
+
+  if (type.includes("bakery") || type.includes("cake")) {
+    return {
+      faqPreview: "Ask custom cake",
+      faq: "Hi, do you make custom cakes and how much are cakes?",
+      bookingPreview: "Book cake order",
+      booking: "Hi, this is Jasmine 9123 4567. Can I book a cake order today at 4pm?",
+      duplicate: "Hi, this is Marcus 9123 9999. Can I book a cake order today at 4pm?",
+      human: "Urgent, can a human call me about a cake order change now?"
+    };
+  }
+
+  return fallback;
 }
 
 function calendarPanel(business) {
