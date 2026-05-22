@@ -292,7 +292,7 @@ function buildContextualIncoming(incoming, existingConversation) {
 
   return {
     ...incoming,
-    text: `${context}\nLatest customer message: ${incoming.text}`
+    text: `Latest customer message: ${incoming.text}\nPrevious chat context: ${context}`
   };
 }
 
