@@ -191,9 +191,7 @@ function sanitizeBusinessSettings(input, fallback) {
     owner: cleanText(source.owner, fallback.owner),
     whatsappNumber: cleanText(source.whatsappNumber, fallback.whatsappNumber),
     appointmentLabel: cleanText(source.appointmentLabel, fallback.appointmentLabel),
-    calendar: calendarForBusiness({
-      calendar: source.calendar || fallback.calendar
-    }),
+    calendar: mergeCalendarSettings(source.calendar, fallback.calendar),
     autoReplyEnabled: typeof source.autoReplyEnabled === "boolean" ? source.autoReplyEnabled : fallback.autoReplyEnabled,
     escalationEnabled: typeof source.escalationEnabled === "boolean" ? source.escalationEnabled : fallback.escalationEnabled,
     businessHours: {
@@ -223,6 +221,19 @@ function sanitizeFaqs(input, fallbackFaqs = []) {
     .filter((faq) => faq.question && faq.answer);
 
   return cleanedFaqs.length ? cleanedFaqs : fallbackFaqs;
+}
+
+function mergeCalendarSettings(sourceCalendar, fallbackCalendar) {
+  const fallback = calendarForBusiness({ calendar: fallbackCalendar });
+  const source = sourceCalendar ? calendarForBusiness({ calendar: sourceCalendar }) : {};
+
+  return calendarForBusiness({
+    calendar: {
+      ...fallback,
+      ...source,
+      busyWindows: source.busyWindows?.length ? source.busyWindows : fallback.busyWindows
+    }
+  });
 }
 
 function cleanText(value, fallback) {
