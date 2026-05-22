@@ -141,6 +141,7 @@ test("server continues chats by business and phone number", async () => {
   assert.match(source, /function buildContextualIncoming/);
   assert.match(source, /function mergeConversation/);
   assert.match(source, /Latest customer message/);
+  assert.match(source, /Previous chat context/);
   assert.match(source, /messagesToSave/);
   assert.match(source, /upsertWorkspaceConversation/);
   assert.match(store, /options = \{\}/);
