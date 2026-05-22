@@ -22,6 +22,7 @@ import {
   sendWhatsAppText,
   verifyWhatsAppWebhook
 } from "./src/integrations/whatsappCloud.js";
+import { hydrateBusinessCalendarBusyWindows } from "./src/integrations/googleCalendar.js";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const publicRoot = __dirname;
@@ -503,6 +504,7 @@ async function processIncomingMessages(body, { sendToWhatsApp }) {
     if (!sendToWhatsApp && body.businessSnapshot?.id === business.id) {
       business = sanitizeBusinessSettings(body.businessSnapshot, business);
     }
+    business = await hydrateBusinessCalendarForIncoming(business, incoming);
 
     const existingConversation = findLatestConversationForIncoming(activeWorkspace.conversations, incoming, business.id);
     const contextualIncoming = buildContextualIncoming(incoming, existingConversation);
@@ -554,6 +556,14 @@ async function processIncomingMessages(body, { sendToWhatsApp }) {
 
 function isProtectedEngineReply(replyText) {
   return /already booked/i.test(replyText);
+}
+
+async function hydrateBusinessCalendarForIncoming(business, incoming) {
+  if (!/\b(book|booking|appointment|slot|available|schedule|trial|come|today|tomorrow|\d{1,2}\s?(?:am|pm))\b/i.test(incoming.text || "")) {
+    return business;
+  }
+
+  return hydrateBusinessCalendarBusyWindows({ business });
 }
 
 const server = createServer(async (request, response) => {
