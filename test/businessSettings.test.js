@@ -34,6 +34,14 @@ test("dashboard includes editable business settings controls", async () => {
   assert.match(source, /reply-test-form/);
   assert.match(source, /Test reply/);
   assert.match(source, /reply-preview/);
+  assert.match(source, /Test inbox/);
+  assert.match(source, /test-inbox-form/);
+  assert.match(source, /testInboxScenarios/);
+  assert.match(source, /data-test-phone/);
+  assert.match(source, /data-test-scenario/);
+  assert.match(source, /Send test message/);
+  assert.match(source, /Test message sent/);
+  assert.match(source, /upsertLocalConversation/);
   assert.match(source, /getAssistantReply/);
   assert.match(source, /\/api\/workspace/);
   assert.match(source, /Synced from server/);
@@ -59,6 +67,10 @@ test("dashboard styles the booking calendar preview", async () => {
   assert.match(styles, /\.calendar-summary/);
   assert.match(styles, /\.slot-list/);
   assert.match(styles, /\.slot-chip/);
+  assert.match(styles, /\.test-inbox-panel/);
+  assert.match(styles, /\.scenario-grid/);
+  assert.match(styles, /\.phone-chip/);
+  assert.match(styles, /\.test-reply-card/);
 });
 
 test("dashboard styles the pilot onboarding checklist", async () => {

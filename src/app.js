@@ -26,6 +26,13 @@ const state = {
     status: "Ready",
     question: "Hi, what is your schedule and can I book a trial lesson tomorrow?",
     reply: ""
+  },
+  testInbox: {
+    status: "Ready",
+    phone: "+65 9000 1122",
+    message: "Hi, this is Jasmine 9123 4567. Can I book a trial lesson today at 4pm?",
+    reply: "Send a test message to see the WhatsApp reply.",
+    lastConversationId: ""
   }
 };
 
@@ -36,7 +43,9 @@ const icons = {
   clock: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22a10 10 0 1 1 0-20 10 10 0 0 1 0 20Zm1-10.4V6h-2v7h6v-2h-4Z"/></svg>`,
   chart: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19h16v2H2V3h2v16Zm3-2V9h3v8H7Zm5 0V5h3v12h-3Zm5 0v-6h3v6h-3Z"/></svg>`,
   shield: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 4 5v6c0 5 3.3 9.4 8 11 4.7-1.6 8-6 8-11V5l-8-3Zm-1 14-3.5-3.5L9 11l2 2 4-4 1.5 1.5L11 16Z"/></svg>`,
-  reset: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5a7 7 0 1 1-6.3 10H3.6A9 9 0 1 0 5 6.6V3H3v7h7V8H6.5A7 7 0 0 1 12 5Z"/></svg>`
+  reset: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5a7 7 0 1 1-6.3 10H3.6A9 9 0 1 0 5 6.6V3H3v7h7V8H6.5A7 7 0 0 1 12 5Z"/></svg>`,
+  send: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20 22 12 3 4v6l11 2-11 2v6Z"/></svg>`,
+  phone: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Zm4 17h2v-2h-2v2Z"/></svg>`
 };
 
 const app = document.querySelector("#app");
@@ -134,25 +143,15 @@ function render() {
       </section>
 
       <section class="automation-grid" id="automation">
-        <div class="panel">
+        <div class="panel test-inbox-panel">
           <div class="panel-header">
             <div>
               <p class="eyebrow">WhatsApp Integration</p>
-              <h2>Webhook simulator</h2>
+              <h2>Test inbox</h2>
             </div>
-            <span class="pill">MVP adapter</span>
+            <span class="pill">${state.testInbox.status}</span>
           </div>
-          <form id="message-form" class="form-stack">
-            <label>
-              Customer phone
-              <input name="from" value="+65 9000 1122" autocomplete="tel" />
-            </label>
-            <label>
-              Incoming WhatsApp message
-              <textarea name="text" rows="4">Hi, how much is your service and can book tomorrow morning?</textarea>
-            </label>
-            <button type="submit" class="primary-button${action.className("message")}"${action.aria("message")}>${icons.bolt}<span>${action.label("message", "Run auto-reply", "Running...")}</span></button>
-          </form>
+          ${testInboxPanel(business)}
         </div>
 
         <div class="panel">
@@ -310,12 +309,12 @@ function onboardingItems(business, conversations) {
 
 function conversationListItem(conversation) {
   return `
-    <button class="conversation-item ${conversation.id === state.activeConversationId ? "active" : ""}" data-conversation-id="${conversation.id}">
+    <button class="conversation-item ${conversation.id === state.activeConversationId ? "active" : ""}" data-conversation-id="${escapeAttribute(conversation.id)}">
       <div>
-        <strong>${conversation.customerName}</strong>
-        <span>${conversation.summary}</span>
+        <strong>${escapeHtml(conversation.customerName)}</strong>
+        <span>${escapeHtml(conversation.summary)}</span>
       </div>
-      <small class="status ${conversation.status}">${conversation.status.replace("-", " ")}</small>
+      <small class="status ${escapeAttribute(conversation.status)}">${escapeHtml(conversation.status.replace("-", " "))}</small>
     </button>
   `;
 }
@@ -324,20 +323,20 @@ function conversationDetail(conversation) {
   return `
     <div class="panel-header">
       <div>
-        <p class="eyebrow">${conversation.customerPhone}</p>
-        <h2>${conversation.customerName}</h2>
+        <p class="eyebrow">${escapeHtml(conversation.customerPhone)}</p>
+        <h2>${escapeHtml(conversation.customerName)}</h2>
       </div>
-      <span class="pill">${conversation.intent}</span>
+      <span class="pill">${escapeHtml(conversation.intent)}</span>
     </div>
     <div class="lead-strip">
-      <span><strong>Service</strong>${conversation.lead.service || "Not captured"}</span>
-      <span><strong>Timing</strong>${conversation.lead.preferredTime || "Not captured"}</span>
-      <span><strong>Status</strong>${conversation.status.replace("-", " ")}</span>
+      <span><strong>Service</strong>${escapeHtml(conversation.lead.service || "Not captured")}</span>
+      <span><strong>Timing</strong>${escapeHtml(conversation.lead.preferredTime || "Not captured")}</span>
+      <span><strong>Status</strong>${escapeHtml(conversation.status.replace("-", " "))}</span>
     </div>
     <div class="messages">
       ${conversation.messages.map((message) => `
-        <div class="bubble ${message.from}">
-          <p>${message.text}</p>
+        <div class="bubble ${escapeAttribute(message.from)}">
+          <p>${escapeHtml(message.text)}</p>
           <time>${formatTime(message.timestamp)}</time>
         </div>
       `).join("")}
@@ -405,6 +404,86 @@ function replyTestPanel(business) {
       <p>${escapeHtml(reply)}</p>
     </div>
   `;
+}
+
+function testInboxPanel(business) {
+  const scenarios = testInboxScenarios(business);
+
+  return `
+    <div class="test-phone-row" role="group" aria-label="Test customer numbers">
+      ${testInboxPhones().map((phone) => `
+        <button class="phone-chip ${state.testInbox.phone === phone.value ? "active" : ""}" type="button" data-test-phone="${escapeAttribute(phone.value)}">
+          ${icons.phone}<span>${phone.label}</span>
+        </button>
+      `).join("")}
+    </div>
+    <div class="scenario-grid" role="group" aria-label="Test message starters">
+      ${scenarios.map((scenario) => `
+        <button class="scenario-button" type="button" data-test-scenario="${scenario.id}">
+          <strong>${scenario.label}</strong>
+          <span>${scenario.preview}</span>
+        </button>
+      `).join("")}
+    </div>
+    <form id="test-inbox-form" class="form-stack">
+      <label>
+        Customer phone
+        <input name="from" value="${escapeAttribute(state.testInbox.phone)}" autocomplete="tel" />
+      </label>
+      <label>
+        Incoming WhatsApp message
+        <textarea name="text" rows="4">${escapeHtml(state.testInbox.message)}</textarea>
+      </label>
+      <button type="submit" class="primary-button${buttonBusyClass("test-inbox")}"${buttonBusyAria("test-inbox")}>${icons.send}<span>${buttonBusyLabel("test-inbox", "Send test message", "Sending...")}</span></button>
+    </form>
+    <div class="test-reply-card">
+      <span>${business.name} auto-reply</span>
+      <p>${escapeHtml(state.testInbox.reply)}</p>
+    </div>
+  `;
+}
+
+function testInboxPhones() {
+  return [
+    { label: "Customer A", value: "+65 9000 1122" },
+    { label: "Customer B", value: "+65 9000 3344" },
+    { label: "Customer C", value: "+65 9000 5566" }
+  ];
+}
+
+function testInboxScenarios(business) {
+  return [
+    {
+      id: "faq",
+      label: "FAQ",
+      preview: "Ask price or location",
+      text: "Hi, where are you located and how much is your service?"
+    },
+    {
+      id: "follow-up",
+      label: "Memory",
+      preview: "Same number follow-up",
+      text: "This is the same customer. Can you remember what I asked and help me choose a slot?"
+    },
+    {
+      id: "booking",
+      label: "Booking",
+      preview: "Request a slot",
+      text: `Hi, this is Jasmine 9123 4567. Can I book ${business.appointmentLabel || "an appointment"} today at 4pm?`
+    },
+    {
+      id: "duplicate",
+      label: "Duplicate",
+      preview: "Try same slot again",
+      text: `Hi, this is Marcus 9123 9999. Can I book ${business.appointmentLabel || "an appointment"} today at 4pm?`
+    },
+    {
+      id: "human",
+      label: "Human",
+      preview: "Escalation request",
+      text: "Urgent, can a human call me now? I need help before booking."
+    }
+  ];
 }
 
 function calendarPanel(business) {
@@ -593,7 +672,7 @@ function bindEvents() {
       }
     });
 
-    workspace.conversations.unshift(result.conversation);
+    upsertLocalConversation(result.conversation);
     state.activeConversationId = result.conversation.id;
     state.testPreview = {
       status: result.conversation.status.replace("-", " "),
@@ -614,26 +693,66 @@ function bindEvents() {
     });
   });
 
-  document.querySelector("#message-form").addEventListener("submit", async (event) => {
+  document.querySelectorAll("[data-test-phone]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.testInbox.phone = button.dataset.testPhone;
+      render();
+      location.hash = "automation";
+    });
+  });
+
+  document.querySelectorAll("[data-test-scenario]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const scenario = testInboxScenarios(currentBusiness()).find((item) => item.id === button.dataset.testScenario);
+      if (!scenario) {
+        return;
+      }
+
+      state.testInbox.message = scenario.text;
+      state.testInbox.status = "Ready";
+      render();
+      location.hash = "automation";
+    });
+  });
+
+  document.querySelector("#test-inbox-form").addEventListener("submit", async (event) => {
     event.preventDefault();
-    state.busyAction = "message";
     const form = new FormData(event.currentTarget);
     const business = currentBusiness();
+    const text = cleanValue(form.get("text"), state.testInbox.message);
+    const from = cleanValue(form.get("from"), state.testInbox.phone);
+    state.busyAction = "test-inbox";
+    state.testInbox = {
+      ...state.testInbox,
+      status: "Sending...",
+      phone: from,
+      message: text,
+      reply: "Waiting for the auto-reply..."
+    };
+    render();
+
     const result = await runServerSimulator({
       business,
       message: {
-        id: `conv-${crypto.randomUUID()}`,
-        from: form.get("from"),
-        text: form.get("text")
+        id: `test-${crypto.randomUUID()}`,
+        from,
+        text
       }
     });
 
-    workspace.conversations.unshift(result.conversation);
+    upsertLocalConversation(result.conversation);
     state.activeConversationId = result.conversation.id;
     state.busyAction = "";
-    showToast("Auto-reply generated", "success", { renderNow: false });
+    state.testInbox = {
+      ...state.testInbox,
+      status: result.conversation.status.replace("-", " "),
+      reply: getAssistantReply(result.conversation),
+      lastConversationId: result.conversation.id
+    };
+    showToast("Test message sent", "success", { renderNow: false });
     saveWorkspace();
     render();
+    location.hash = "automation";
   });
 
   document.querySelector("#seed-message-button").addEventListener("click", () => {
@@ -652,7 +771,7 @@ function bindEvents() {
         text
       }
     });
-    workspace.conversations.unshift(result.conversation);
+    upsertLocalConversation(result.conversation);
     state.activeConversationId = result.conversation.id;
     showToast("Demo customer added", "success", { renderNow: false });
     saveWorkspace();
@@ -870,6 +989,11 @@ function applyConversationReset(businessId, conversation) {
   } else {
     state.activeConversationId = currentConversations()[0]?.id || null;
   }
+}
+
+function upsertLocalConversation(conversation) {
+  workspace.conversations = workspace.conversations.filter((item) => item.id !== conversation.id);
+  workspace.conversations.unshift(conversation);
 }
 
 function getAnalytics(conversations) {

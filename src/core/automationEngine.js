@@ -502,7 +502,7 @@ export function handleIncomingMessage({ business, message, now = new Date() }) {
       id: message.id || `conv-${Date.now()}`,
       businessId: business.id,
       customerName: lead.name || "New WhatsApp lead",
-      customerPhone: lead.phone || message.from || "Unknown",
+      customerPhone: message.from || lead.phone || "Unknown",
       status: needsHuman ? "needs-human" : lead.service || lead.preferredTime ? "qualified-lead" : "auto-replied",
       intent,
       summary: summarizeConversation(cleanText, intent, lead),
