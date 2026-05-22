@@ -114,3 +114,21 @@ test("blocks a BrightPath booking request when the requested calendar slot is bu
   assert.match(result.reply.text, /already booked/i);
   assert.doesNotMatch(result.reply.text, /11am.*available/i);
 });
+
+test("uses the latest customer message when contextual follow-ups include older timing", () => {
+  const result = handleIncomingMessage({
+    business: tuition,
+    message: {
+      from: "+65 9000 1122",
+      text: [
+        "Latest customer message: Sorry I mean today, 11am",
+        "Previous chat context: Previous requested time: Tomorrow. Previous customer message: Can book tomorrow morning 11am?"
+      ].join("\n")
+    },
+    now: new Date("2026-05-21T23:10:00.000Z")
+  });
+
+  assert.equal(result.intent, "appointment");
+  assert.equal(result.lead.preferredTime, "Today");
+  assert.match(result.reply.text, /already booked/i);
+});
