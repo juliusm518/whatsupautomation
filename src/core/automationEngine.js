@@ -616,6 +616,10 @@ export function shouldEscalate(text, intent, business = {}) {
   return intent === "escalation" || escalationWords.some((word) => normalized.includes(word));
 }
 
+export function requestedAppointmentSlotForMessage(text, business, now = new Date()) {
+  return requestedAppointmentSlot(text, business, now);
+}
+
 function composeReply({ business, intent, matchedFaq, lead, withinHours, needsHuman, appointmentConflict }) {
   const prefix = withinHours
     ? `Hi, thanks for contacting ${business.name}.`

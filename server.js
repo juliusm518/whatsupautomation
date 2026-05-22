@@ -7,7 +7,8 @@ import {
   createDemoWorkspace,
   createStarterConversation,
   findBusiness,
-  handleIncomingMessage
+  handleIncomingMessage,
+  requestedAppointmentSlotForMessage
 } from "./src/core/automationEngine.js";
 import {
   deleteBusinessConversationsFromSupabase,
@@ -22,7 +23,10 @@ import {
   sendWhatsAppText,
   verifyWhatsAppWebhook
 } from "./src/integrations/whatsappCloud.js";
-import { hydrateBusinessCalendarBusyWindows } from "./src/integrations/googleCalendar.js";
+import {
+  createGoogleCalendarBooking,
+  hydrateBusinessCalendarBusyWindows
+} from "./src/integrations/googleCalendar.js";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const publicRoot = __dirname;
@@ -513,6 +517,27 @@ async function processIncomingMessages(body, { sendToWhatsApp }) {
       message: contextualIncoming
     });
     result.conversation.messages[0].text = incoming.text;
+    const candidateLead = mergeLead(existingConversation?.lead, {
+      ...result.lead,
+      name: result.lead.name || incoming.customerName || ""
+    });
+    const booking = await confirmAvailableBooking({
+      business,
+      incoming: contextualIncoming,
+      result,
+      lead: candidateLead
+    });
+    if (booking.created) {
+      result.lead = candidateLead;
+      result.reply.text = [
+        `Hi, thanks for contacting ${business.name}.`,
+        `${booking.slot.label} is confirmed for your ${business.appointmentLabel || "booking"}.`,
+        "The team will contact you if any extra details are needed."
+      ].join(" ");
+      result.conversation.status = "booking-confirmed";
+      result.conversation.summary = `Confirmed ${business.appointmentLabel || "booking"} for ${candidateLead.name} on ${booking.slot.label}`;
+      result.conversation.lead = candidateLead;
+    }
     if (!isProtectedEngineReply(result.reply.text)) {
       result.reply.text = await generateAiReply({
         business,
@@ -555,7 +580,33 @@ async function processIncomingMessages(body, { sendToWhatsApp }) {
 }
 
 function isProtectedEngineReply(replyText) {
-  return /already booked/i.test(replyText);
+  return /already booked|is confirmed/i.test(replyText);
+}
+
+async function confirmAvailableBooking({ business, incoming, result, lead }) {
+  if (result.intent !== "appointment" || /already booked/i.test(result.reply.text)) {
+    return { created: false, skipped: true };
+  }
+
+  if (!hasBookingConfirmationDetails(lead)) {
+    return { created: false, skipped: true };
+  }
+
+  const slot = requestedAppointmentSlotForMessage(incoming.text, business);
+  if (!slot) {
+    return { created: false, skipped: true };
+  }
+
+  try {
+    return await createGoogleCalendarBooking({ business, lead, slot });
+  } catch (error) {
+    console.warn(`Google Calendar booking skipped: ${error.message}`);
+    return { created: false, skipped: true, reason: error.message };
+  }
+}
+
+function hasBookingConfirmationDetails(lead = {}) {
+  return Boolean(lead.name && lead.phone && lead.service && lead.preferredTime);
 }
 
 async function hydrateBusinessCalendarForIncoming(business, incoming) {

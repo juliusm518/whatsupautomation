@@ -1,5 +1,6 @@
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const GOOGLE_FREEBUSY_URL = "https://www.googleapis.com/calendar/v3/freeBusy";
+const GOOGLE_CALENDAR_EVENTS_URL = "https://www.googleapis.com/calendar/v3/calendars";
 const DEFAULT_TIME_ZONE = "Asia/Singapore";
 
 let cachedAccessToken = "";
@@ -80,6 +81,59 @@ export async function fetchGoogleCalendarBusyWindows({
   }));
 }
 
+export async function createGoogleCalendarBooking({
+  business,
+  lead,
+  slot,
+  env = process.env,
+  fetchImpl = fetch
+}) {
+  const calendar = business?.calendar || {};
+  if (!calendar.connected || !calendar.calendarId || !googleCalendarConfigured(env)) {
+    return { created: false, skipped: true, reason: "Google Calendar is not configured" };
+  }
+
+  const timeZone = business.businessHours?.timeZone || DEFAULT_TIME_ZONE;
+  const accessToken = await googleCalendarAccessToken({ env, fetchImpl });
+  const response = await fetchImpl(`${GOOGLE_CALENDAR_EVENTS_URL}/${encodeURIComponent(calendar.calendarId)}/events`, {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${accessToken}`,
+      "content-type": "application/json"
+    },
+    body: JSON.stringify({
+      summary: `${business.name}: ${business.appointmentLabel || "Booking"} with ${lead.name}`,
+      description: [
+        `Customer: ${lead.name}`,
+        `Phone: ${lead.phone}`,
+        `Service: ${lead.service || business.type || "Not specified"}`,
+        "Created by ReplyPilot from a WhatsApp booking request."
+      ].join("\n"),
+      start: {
+        dateTime: toRfc3339Local(slot.start, timeZone),
+        timeZone
+      },
+      end: {
+        dateTime: toRfc3339Local(slot.end, timeZone),
+        timeZone
+      },
+      transparency: "opaque"
+    })
+  });
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(payload.error?.message || `calendar event creation failed with ${response.status}`);
+  }
+
+  return {
+    created: true,
+    eventId: payload.id,
+    htmlLink: payload.htmlLink,
+    slot
+  };
+}
+
 async function googleCalendarAccessToken({ env, fetchImpl }) {
   if (env.GOOGLE_CALENDAR_ACCESS_TOKEN) {
     return env.GOOGLE_CALENDAR_ACCESS_TOKEN;
@@ -128,6 +182,11 @@ function toLocalSlotKey(value, timeZone) {
     parts.find((part) => part.type === "month").value,
     parts.find((part) => part.type === "day").value
   ].join("-") + `T${parts.find((part) => part.type === "hour").value}:${parts.find((part) => part.type === "minute").value}`;
+}
+
+function toRfc3339Local(value, timeZone) {
+  const offset = timeZone === DEFAULT_TIME_ZONE ? "+08:00" : "";
+  return `${String(value || "").slice(0, 16)}:00${offset}`;
 }
 
 function addDays(date, days) {
