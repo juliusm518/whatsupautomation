@@ -49,6 +49,20 @@ test("extracts lead details from natural WhatsApp copy", () => {
   assert.match(lead.service, /Aircon/i);
 });
 
+test("keeps conversation identity anchored to the WhatsApp sender", () => {
+  const result = handleIncomingMessage({
+    business: tuition,
+    message: {
+      from: "+65 9000 1111",
+      text: "Hi, I'm Jasmine 9123 4567. Can I book P5 math today at 4pm?"
+    },
+    now: new Date("2026-05-16T03:00:00.000Z")
+  });
+
+  assert.equal(result.lead.phone, "91234567");
+  assert.equal(result.conversation.customerPhone, "+65 9000 1111");
+});
+
 test("routes urgent conversations to humans", () => {
   const result = handleIncomingMessage({
     business: aircon,

@@ -650,6 +650,99 @@ h2 {
   gap: 14px;
 }
 
+.test-inbox-panel {
+  align-content: start;
+}
+
+.test-phone-row,
+.scenario-grid {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.test-phone-row {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.scenario-grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.phone-chip,
+.scenario-button {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: inherit;
+  text-align: left;
+}
+
+.phone-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 12px;
+  font-weight: 800;
+}
+
+.phone-chip svg {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  color: var(--brand);
+}
+
+.phone-chip.active,
+.scenario-button:hover,
+.phone-chip:hover {
+  border-color: rgba(15, 143, 101, 0.6);
+  background: #f3fbf7;
+}
+
+.scenario-button {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+}
+
+.scenario-button strong,
+.scenario-button span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scenario-button span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.test-reply-card {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid rgba(55, 127, 208, 0.28);
+  border-radius: 8px;
+  background: #edf4ff;
+}
+
+.test-reply-card span {
+  color: #174b88;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.test-reply-card p {
+  margin: 0;
+  line-height: 1.5;
+}
+
 .form-stack label,
 .faq-item label,
 .settings-form label,
@@ -959,7 +1052,8 @@ h2 {
   .metrics,
   .automation-grid,
   .settings-grid,
-  .setup-checklist {
+  .setup-checklist,
+  .scenario-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -980,6 +1074,8 @@ h2 {
   .settings-grid,
   .setup-checklist,
   .form-grid,
+  .test-phone-row,
+  .scenario-grid,
   .nav {
     grid-template-columns: 1fr;
   }
