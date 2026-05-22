@@ -534,7 +534,7 @@ async function processIncomingMessages(body, { sendToWhatsApp }) {
         `${booking.slot.label} is confirmed for your ${business.appointmentLabel || "booking"}.`,
         "The team will contact you if any extra details are needed."
       ].join(" ");
-      result.conversation.status = "booking-confirmed";
+      result.conversation.status = "qualified-lead";
       result.conversation.summary = `Confirmed ${business.appointmentLabel || "booking"} for ${candidateLead.name} on ${booking.slot.label}`;
       result.conversation.lead = candidateLead;
     }
