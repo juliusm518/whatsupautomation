@@ -153,6 +153,17 @@ test("server persists business settings for reply generation", async () => {
   assert.doesNotMatch(source, /booking-confirmed/);
 });
 
+test("server seeds missing Supabase pilot templates from code defaults", async () => {
+  const store = await readFile(new URL("../src/storage/supabaseStore.js", import.meta.url), "utf8");
+
+  assert.match(store, /createDemoWorkspace/);
+  assert.match(store, /ensureDemoTemplatesInSupabase/);
+  assert.match(store, /on_conflict=id/);
+  assert.match(store, /on_conflict=business_id,question/);
+  assert.match(store, /resolution=ignore-duplicates/);
+  assert.match(store, /appointment_label/);
+});
+
 test("server continues chats by business and phone number", async () => {
   const source = await readFile(new URL("../server.js", import.meta.url), "utf8");
   const store = await readFile(new URL("../src/storage/supabaseStore.js", import.meta.url), "utf8");

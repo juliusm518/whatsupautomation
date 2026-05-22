@@ -1,4 +1,4 @@
-import { calendarForBusiness, defaultCalendar } from "../core/automationEngine.js";
+import { calendarForBusiness, createDemoWorkspace, defaultCalendar } from "../core/automationEngine.js";
 
 const SUPABASE_TABLES = {
   businesses: "replypilot_businesses",
@@ -13,6 +13,8 @@ export function supabaseConfigured() {
 }
 
 export async function loadWorkspaceFromSupabase() {
+  await ensureDemoTemplatesInSupabase();
+
   const [businesses, faqs, conversations, messages, leads] = await Promise.all([
     supabaseRequest(SUPABASE_TABLES.businesses, "?select=*&order=name.asc"),
     supabaseRequest(SUPABASE_TABLES.faqs, "?select=*&order=sort_order.asc"),
@@ -80,6 +82,36 @@ export async function loadWorkspaceFromSupabase() {
       };
     })
   };
+}
+
+async function ensureDemoTemplatesInSupabase() {
+  const demo = createDemoWorkspace();
+  await supabaseRequest(`${SUPABASE_TABLES.businesses}?on_conflict=id`, "", {
+    method: "POST",
+    prefer: "resolution=ignore-duplicates,return=representation",
+    body: demo.businesses.map((business) => ({
+      id: business.id,
+      name: business.name,
+      type: business.type,
+      owner_name: business.owner,
+      whatsapp_number: business.whatsappNumber,
+      appointment_label: business.appointmentLabel,
+      auto_reply_enabled: business.autoReplyEnabled,
+      escalation_enabled: business.escalationEnabled,
+      business_hours: business.businessHours
+    }))
+  });
+
+  await supabaseRequest(`${SUPABASE_TABLES.faqs}?on_conflict=business_id,question`, "", {
+    method: "POST",
+    prefer: "resolution=ignore-duplicates,return=representation",
+    body: demo.businesses.flatMap((business) => business.faqs.map((faq, index) => ({
+      business_id: business.id,
+      question: faq.question,
+      answer: faq.answer,
+      sort_order: index + 1
+    })))
+  });
 }
 
 export async function saveConversationToSupabase(conversation, options = {}) {
