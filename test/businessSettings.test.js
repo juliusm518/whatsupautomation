@@ -30,6 +30,12 @@ test("dashboard includes editable business settings controls", async () => {
   assert.match(source, /reset-conversations-button/);
   assert.match(source, /resetBusinessConversations/);
   assert.match(source, /Demo conversations reset/);
+  assert.match(source, /showPilotConversations/);
+  assert.match(source, /show-pilot-conversations-toggle/);
+  assert.match(source, /Show tests/);
+  assert.match(source, /Test Mode/);
+  assert.match(source, /currentInboxConversations/);
+  assert.match(source, /inboxEmptyState/);
   assert.match(source, /Reply Test/);
   assert.match(source, /reply-test-form/);
   assert.match(source, /Test reply/);
@@ -90,6 +96,10 @@ test("dashboard styles the booking calendar preview", async () => {
   assert.match(styles, /\.scenario-grid/);
   assert.match(styles, /\.phone-chip/);
   assert.match(styles, /\.test-reply-card/);
+  assert.match(styles, /\.test-mode-toggle/);
+  assert.match(styles, /\.conversation-item\.test-mode/);
+  assert.match(styles, /\.test-mode-badge/);
+  assert.match(styles, /\.conversation-labels/);
   assert.match(styles, /\.pilot-test-panel/);
   assert.match(styles, /\.pilot-test-actions/);
   assert.match(styles, /\.pilot-test-results/);

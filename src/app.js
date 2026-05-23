@@ -21,6 +21,7 @@ const state = {
   knowledgeStatus: location.protocol === "file:" ? "Local preview only" : "Saved on server",
   busyAction: "",
   faqDirty: false,
+  showPilotConversations: false,
   toast: null,
   testPreview: {
     status: "Ready",
@@ -60,11 +61,14 @@ refreshWorkspaceFromServer();
 function render() {
   const business = currentBusiness();
   const conversations = currentConversations();
-  const activeConversation = conversations.find((conversation) => conversation.id === state.activeConversationId) || conversations[0];
+  const operationalConversations = conversations.filter((conversation) => !isPilotConversation(conversation));
+  const inboxConversations = state.showPilotConversations ? conversations : operationalConversations;
+  const pilotConversationCount = conversations.length - operationalConversations.length;
+  const activeConversation = inboxConversations.find((conversation) => conversation.id === state.activeConversationId) || inboxConversations[0];
   state.activeConversationId = activeConversation?.id || null;
-  const analytics = getAnalytics(conversations);
+  const analytics = getAnalytics(operationalConversations);
   const action = actionButtonState();
-  const setupProgress = onboardingProgress(business, conversations);
+  const setupProgress = onboardingProgress(business, operationalConversations);
 
   app.innerHTML = `
     ${toastMarkup()}
@@ -133,12 +137,16 @@ function render() {
               <h2>Live WhatsApp inbox</h2>
             </div>
             <div class="inbox-actions">
+              <label class="test-mode-toggle">
+                <input type="checkbox" id="show-pilot-conversations-toggle" ${state.showPilotConversations ? "checked" : ""} />
+                <span>Show tests${pilotConversationCount ? ` (${pilotConversationCount})` : ""}</span>
+              </label>
               <button class="secondary-button compact-button${action.className("reset-conversations")}" id="reset-conversations-button" type="button"${action.aria("reset-conversations")}>${icons.reset}<span>${action.label("reset-conversations", "Reset", "Resetting...")}</span></button>
               <button class="icon-button" id="seed-message-button" title="Add demo customer">${icons.message}</button>
             </div>
           </div>
           <div class="conversation-list">
-            ${conversations.map((conversation) => conversationListItem(conversation)).join("") || emptyState("No conversations yet")}
+            ${inboxConversations.map((conversation) => conversationListItem(conversation)).join("") || inboxEmptyState(pilotConversationCount)}
           </div>
         </div>
 
@@ -324,10 +332,11 @@ function onboardingItems(business, conversations) {
 }
 
 function conversationListItem(conversation) {
+  const testMode = isPilotConversation(conversation);
   return `
-    <button class="conversation-item ${conversation.id === state.activeConversationId ? "active" : ""}" data-conversation-id="${escapeAttribute(conversation.id)}">
+    <button class="conversation-item ${conversation.id === state.activeConversationId ? "active" : ""} ${testMode ? "test-mode" : ""}" data-conversation-id="${escapeAttribute(conversation.id)}">
       <div>
-        <strong>${escapeHtml(conversation.customerName)}</strong>
+        <strong>${escapeHtml(conversation.customerName)}${testMode ? `<small class="test-mode-badge">Test Mode</small>` : ""}</strong>
         <span>${escapeHtml(conversation.summary)}</span>
       </div>
       <small class="status ${escapeAttribute(conversation.status)}">${escapeHtml(conversation.status.replace("-", " "))}</small>
@@ -336,13 +345,17 @@ function conversationListItem(conversation) {
 }
 
 function conversationDetail(conversation) {
+  const testMode = isPilotConversation(conversation);
   return `
     <div class="panel-header">
       <div>
         <p class="eyebrow">${escapeHtml(conversation.customerPhone)}</p>
         <h2>${escapeHtml(conversation.customerName)}</h2>
       </div>
-      <span class="pill">${escapeHtml(conversation.intent)}</span>
+      <div class="conversation-labels">
+        ${testMode ? `<span class="pill test-mode-pill">Test Mode</span>` : ""}
+        <span class="pill">${escapeHtml(conversation.intent)}</span>
+      </div>
     </div>
     <div class="lead-strip">
       <span><strong>Service</strong>${escapeHtml(conversation.lead.service || "Not captured")}</span>
@@ -741,6 +754,14 @@ function emptyState(message) {
   return `<div class="empty-state">${icons.message}<p>${message}</p></div>`;
 }
 
+function inboxEmptyState(pilotConversationCount) {
+  if (pilotConversationCount && !state.showPilotConversations) {
+    return emptyState("No live conversations. Turn on Show tests to view pilot test traffic.");
+  }
+
+  return emptyState("No conversations yet");
+}
+
 function bindEvents() {
   bindButtonClickIndicators();
 
@@ -749,6 +770,13 @@ function bindEvents() {
     state.activeConversationId = currentConversations()[0]?.id || null;
     saveWorkspace();
     render();
+  });
+
+  document.querySelector("#show-pilot-conversations-toggle").addEventListener("change", (event) => {
+    state.showPilotConversations = event.target.checked;
+    state.activeConversationId = currentInboxConversations()[0]?.id || null;
+    render();
+    location.hash = "inbox";
   });
 
   document.querySelector("#refresh-workspace-button").addEventListener("click", async () => {
@@ -1309,6 +1337,10 @@ function currentBusiness() {
 
 function currentConversations() {
   return workspace.conversations.filter((conversation) => conversation.businessId === state.activeBusinessId);
+}
+
+function currentInboxConversations() {
+  return currentConversations().filter((conversation) => state.showPilotConversations || !isPilotConversation(conversation));
 }
 
 function formatTime(timestamp) {
