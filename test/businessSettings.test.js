@@ -47,6 +47,7 @@ test("dashboard includes editable business settings controls", async () => {
   assert.match(source, /Test results/);
   assert.match(source, /run-pilot-tests-button/);
   assert.match(source, /Run pilot tests/);
+  assert.match(source, /Refreshing workspace before pilot checks/);
   assert.match(source, /pilotChecksForBusiness/);
   assert.match(source, /runPilotCheck/);
   assert.match(source, /testSuiteStateFromResults/);
