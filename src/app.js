@@ -33,6 +33,11 @@ const state = {
     message: "Hi, this is Jasmine 9123 4567. Can I book a trial lesson today at 4pm?",
     reply: "Send a test message to see the WhatsApp reply.",
     lastConversationId: ""
+  },
+  testSuite: {
+    status: "Not run",
+    summary: "Run all pilot checks across every business template.",
+    results: []
   }
 };
 
@@ -174,6 +179,17 @@ function render() {
           <div class="faq-list">
             ${business.faqs.map((faq, index) => faqEditor(faq, index)).join("")}
           </div>
+        </div>
+
+        <div class="panel pilot-test-panel">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Pilot Testing</p>
+              <h2>Test results</h2>
+            </div>
+            <span class="pill">${state.testSuite.status}</span>
+          </div>
+          ${pilotTestPanel()}
         </div>
       </section>
 
@@ -557,6 +573,30 @@ function testScenarioProfile(business) {
   return fallback;
 }
 
+function pilotTestPanel() {
+  const passed = state.testSuite.results.filter((result) => result.ok).length;
+  const total = state.testSuite.results.length;
+
+  return `
+    <div class="pilot-test-summary">
+      <strong>${escapeHtml(state.testSuite.summary)}</strong>
+      <span>${total ? `${passed}/${total} checks passed` : `${workspace.businesses.length} businesses ready to test`}</span>
+    </div>
+    <button type="button" class="primary-button${buttonBusyClass("pilot-tests")}" id="run-pilot-tests-button"${buttonBusyAria("pilot-tests")}>${icons.shield}<span>${buttonBusyLabel("pilot-tests", "Run pilot tests", "Running tests...")}</span></button>
+    <div class="pilot-test-results">
+      ${state.testSuite.results.map((result) => `
+        <article class="pilot-test-result ${result.ok ? "passed" : "failed"}">
+          <div>
+            <strong>${escapeHtml(result.businessName)}</strong>
+            <span>${escapeHtml(result.kind)} - ${escapeHtml(result.detail)}</span>
+          </div>
+          <small>${result.ok ? "Pass" : "Check"}</small>
+        </article>
+      `).join("") || emptyState("No pilot test results yet.")}
+    </div>
+  `;
+}
+
 function calendarPanel(business) {
   const availability = buildAvailabilityPreview(business);
   const calendar = availability.calendar;
@@ -826,6 +866,32 @@ function bindEvents() {
     location.hash = "automation";
   });
 
+  document.querySelector("#run-pilot-tests-button").addEventListener("click", async () => {
+    state.busyAction = "pilot-tests";
+    state.testSuite = {
+      status: "Running",
+      summary: "Running pilot checks...",
+      results: []
+    };
+    render();
+
+    const results = [];
+    for (const [businessIndex, business] of workspace.businesses.entries()) {
+      for (const check of pilotChecksForBusiness(business)) {
+        const result = await runPilotCheck({ business, check, businessIndex });
+        results.push(result);
+        state.testSuite = testSuiteStateFromResults(results, false);
+        render();
+      }
+    }
+
+    state.busyAction = "";
+    state.testSuite = testSuiteStateFromResults(results, true);
+    showToast(state.testSuite.summary, results.every((result) => result.ok) ? "success" : "error", { renderNow: false });
+    render();
+    location.hash = "automation";
+  });
+
   document.querySelector("#seed-message-button").addEventListener("click", () => {
     const business = currentBusiness();
     const samples = [
@@ -963,6 +1029,69 @@ function bindEvents() {
       saveWorkspace();
     });
   });
+}
+
+function pilotChecksForBusiness(business) {
+  const profile = testScenarioProfile(business);
+  return [
+    {
+      kind: "FAQ",
+      text: profile.faq,
+      validate: (payload) => Boolean(payload.reply?.text && ["faq", "lead"].includes(payload.intent))
+    },
+    {
+      kind: "Booking",
+      text: profile.booking.replace(/\btoday at \d{1,2}(?::\d{2})?\s?(?:am|pm)\b/i, "tomorrow"),
+      validate: (payload) => payload.intent === "appointment" && payload.conversation?.status === "qualified-lead"
+    },
+    {
+      kind: "Escalation",
+      text: profile.human,
+      validate: (payload) => payload.intent === "escalation" && payload.conversation?.status === "needs-human"
+    }
+  ];
+}
+
+async function runPilotCheck({ business, check, businessIndex }) {
+  try {
+    const payload = await runServerSimulator({
+      business,
+      message: {
+        id: `pilot-${business.id}-${check.kind.toLowerCase()}-${crypto.randomUUID()}`,
+        from: `+65 93${String(businessIndex).padStart(2, "0")} ${check.kind === "FAQ" ? "1000" : check.kind === "Booking" ? "2000" : "3000"}`,
+        text: check.text
+      }
+    });
+    const ok = check.validate(payload);
+
+    return {
+      businessId: business.id,
+      businessName: business.name,
+      kind: check.kind,
+      ok,
+      detail: ok ? `${payload.intent} / ${payload.conversation?.status || "replied"}` : "Unexpected reply"
+    };
+  } catch {
+    return {
+      businessId: business.id,
+      businessName: business.name,
+      kind: check.kind,
+      ok: false,
+      detail: "Request failed"
+    };
+  }
+}
+
+function testSuiteStateFromResults(results, complete) {
+  const passed = results.filter((result) => result.ok).length;
+  const total = results.length;
+  const allPassed = total > 0 && passed === total;
+
+  return {
+    status: complete ? (allPassed ? "Passed" : "Needs review") : "Running",
+    summary: complete ? `${passed}/${total} pilot checks passed` : `${passed}/${total} checks passing so far`,
+    results
+  };
 }
 
 function bindButtonClickIndicators() {

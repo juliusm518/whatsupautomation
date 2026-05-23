@@ -43,6 +43,14 @@ test("dashboard includes editable business settings controls", async () => {
   assert.match(source, /Send test message/);
   assert.match(source, /Test message sent/);
   assert.match(source, /upsertLocalConversation/);
+  assert.match(source, /Pilot Testing/);
+  assert.match(source, /Test results/);
+  assert.match(source, /run-pilot-tests-button/);
+  assert.match(source, /Run pilot tests/);
+  assert.match(source, /pilotChecksForBusiness/);
+  assert.match(source, /runPilotCheck/);
+  assert.match(source, /testSuiteStateFromResults/);
+  assert.match(source, /pilot-/);
   assert.match(source, /how much is aircon servicing/);
   assert.match(source, /plumbing repair visit/);
   assert.match(source, /renovation consultation/);
@@ -77,6 +85,10 @@ test("dashboard styles the booking calendar preview", async () => {
   assert.match(styles, /\.scenario-grid/);
   assert.match(styles, /\.phone-chip/);
   assert.match(styles, /\.test-reply-card/);
+  assert.match(styles, /\.pilot-test-panel/);
+  assert.match(styles, /\.pilot-test-results/);
+  assert.match(styles, /\.pilot-test-result\.passed/);
+  assert.match(styles, /\.pilot-test-result\.failed/);
 });
 
 test("dashboard styles the pilot onboarding checklist", async () => {
