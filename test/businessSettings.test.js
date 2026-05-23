@@ -47,6 +47,10 @@ test("dashboard includes editable business settings controls", async () => {
   assert.match(source, /Test results/);
   assert.match(source, /run-pilot-tests-button/);
   assert.match(source, /Run pilot tests/);
+  assert.match(source, /clear-pilot-tests-button/);
+  assert.match(source, /Clear pilot tests/);
+  assert.match(source, /clearPilotTestConversations/);
+  assert.match(source, /isPilotConversation/);
   assert.match(source, /Refreshing workspace before pilot checks/);
   assert.match(source, /pilotChecksForBusiness/);
   assert.match(source, /runPilotCheck/);
@@ -87,6 +91,7 @@ test("dashboard styles the booking calendar preview", async () => {
   assert.match(styles, /\.phone-chip/);
   assert.match(styles, /\.test-reply-card/);
   assert.match(styles, /\.pilot-test-panel/);
+  assert.match(styles, /\.pilot-test-actions/);
   assert.match(styles, /\.pilot-test-results/);
   assert.match(styles, /\.pilot-test-result\.passed/);
   assert.match(styles, /\.pilot-test-result\.failed/);
@@ -154,6 +159,9 @@ test("server persists business settings for reply generation", async () => {
   assert.match(source, /saveBusinessSettingsToSupabase/);
   assert.match(source, /saveFaqsToSupabase/);
   assert.equal(source.includes("conversations\\/reset"), true);
+  assert.match(source, /pilot-tests\/cleanup/);
+  assert.match(source, /isPilotConversation/);
+  assert.match(source, /deleteConversationsFromSupabase/);
   assert.match(source, /deleteBusinessConversationsFromSupabase/);
   assert.match(source, /createStarterConversation/);
   assert.match(source, /sanitizeBusinessSettings/);
@@ -194,4 +202,6 @@ test("server continues chats by business and phone number", async () => {
   assert.match(store, /on_conflict=id/);
   assert.match(store, /on_conflict=conversation_id/);
   assert.match(store, /resolution=merge-duplicates/);
+  assert.match(store, /deleteConversationsFromSupabase/);
+  assert.match(store, /conversation_id=in/);
 });

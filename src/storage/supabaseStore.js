@@ -167,6 +167,19 @@ export async function deleteBusinessConversationsFromSupabase(businessId) {
   await supabaseRequest(`${SUPABASE_TABLES.conversations}${query}`, "", { method: "DELETE" });
 }
 
+export async function deleteConversationsFromSupabase(conversationIds) {
+  if (!conversationIds.length) {
+    return;
+  }
+
+  const query = `?conversation_id=in.(${conversationIds.map(encodeURIComponent).join(",")})`;
+  await supabaseRequest(`${SUPABASE_TABLES.messages}${query}`, "", { method: "DELETE" });
+  await supabaseRequest(`${SUPABASE_TABLES.leads}${query}`, "", { method: "DELETE" });
+
+  const conversationQuery = `?id=in.(${conversationIds.map(encodeURIComponent).join(",")})`;
+  await supabaseRequest(`${SUPABASE_TABLES.conversations}${conversationQuery}`, "", { method: "DELETE" });
+}
+
 export async function saveBusinessSettingsToSupabase(business) {
   await supabaseRequest(`${SUPABASE_TABLES.businesses}?id=eq.${encodeURIComponent(business.id)}`, "", {
     method: "PATCH",

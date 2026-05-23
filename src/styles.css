@@ -762,6 +762,12 @@ h2 {
   font-weight: 800;
 }
 
+.pilot-test-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
 .pilot-test-results {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1146,6 +1152,7 @@ h2 {
   .form-grid,
   .test-phone-row,
   .scenario-grid,
+  .pilot-test-actions,
   .pilot-test-results,
   .nav {
     grid-template-columns: 1fr;

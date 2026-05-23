@@ -582,7 +582,10 @@ function pilotTestPanel() {
       <strong>${escapeHtml(state.testSuite.summary)}</strong>
       <span>${total ? `${passed}/${total} checks passed` : `${workspace.businesses.length} businesses ready to test`}</span>
     </div>
-    <button type="button" class="primary-button${buttonBusyClass("pilot-tests")}" id="run-pilot-tests-button"${buttonBusyAria("pilot-tests")}>${icons.shield}<span>${buttonBusyLabel("pilot-tests", "Run pilot tests", "Running tests...")}</span></button>
+    <div class="pilot-test-actions">
+      <button type="button" class="primary-button${buttonBusyClass("pilot-tests")}" id="run-pilot-tests-button"${buttonBusyAria("pilot-tests")}>${icons.shield}<span>${buttonBusyLabel("pilot-tests", "Run pilot tests", "Running tests...")}</span></button>
+      <button type="button" class="secondary-button${buttonBusyClass("pilot-cleanup")}" id="clear-pilot-tests-button"${buttonBusyAria("pilot-cleanup")}>${icons.reset}<span>${buttonBusyLabel("pilot-cleanup", "Clear pilot tests", "Clearing...")}</span></button>
+    </div>
     <div class="pilot-test-results">
       ${state.testSuite.results.map((result) => `
         <article class="pilot-test-result ${result.ok ? "passed" : "failed"}">
@@ -900,6 +903,43 @@ function bindEvents() {
     location.hash = "automation";
   });
 
+  document.querySelector("#clear-pilot-tests-button").addEventListener("click", async () => {
+    const count = workspace.conversations.filter(isPilotConversation).length;
+    if (count && !confirm(`Clear ${count} pilot test conversations? Real customer conversations will stay saved.`)) {
+      return;
+    }
+
+    state.busyAction = "pilot-cleanup";
+    state.testSuite = {
+      status: "Cleaning",
+      summary: "Clearing pilot test conversations...",
+      results: state.testSuite.results
+    };
+    render();
+    const deleted = await clearPilotTestConversations();
+    if (deleted === null) {
+      state.busyAction = "";
+      state.testSuite = {
+        status: "Needs review",
+        summary: "Could not clear pilot test conversations",
+        results: state.testSuite.results
+      };
+      render();
+      return;
+    }
+
+    state.busyAction = "";
+    state.testSuite = {
+      status: "Clean",
+      summary: deleted ? `Cleared ${deleted} pilot test conversations` : "No pilot test conversations to clear",
+      results: []
+    };
+    showToast(state.testSuite.summary, "success", { renderNow: false });
+    saveWorkspace();
+    render();
+    location.hash = "automation";
+  });
+
   document.querySelector("#seed-message-button").addEventListener("click", () => {
     const business = currentBusiness();
     const samples = [
@@ -1100,6 +1140,47 @@ function testSuiteStateFromResults(results, complete) {
     summary: complete ? `${passed}/${total} pilot checks passed` : `${passed}/${total} checks passing so far`,
     results
   };
+}
+
+function isPilotConversation(conversation) {
+  return /^(api-pilot-|pilot-)/.test(conversation.id || "");
+}
+
+async function clearPilotTestConversations() {
+  if (location.protocol !== "file:") {
+    try {
+      const response = await fetch("/api/pilot-tests/cleanup", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json"
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error("Pilot cleanup API failed");
+      }
+
+      const payload = await response.json();
+      removePilotConversations();
+      await refreshWorkspaceFromServer();
+      return payload.deleted || 0;
+    } catch {
+      showToast("Could not clear pilot tests", "error", { renderNow: false });
+      return null;
+    }
+  }
+
+  const deleted = removePilotConversations();
+  return deleted;
+}
+
+function removePilotConversations() {
+  const before = workspace.conversations.length;
+  workspace.conversations = workspace.conversations.filter((conversation) => !isPilotConversation(conversation));
+  if (!currentConversations().some((conversation) => conversation.id === state.activeConversationId)) {
+    state.activeConversationId = currentConversations()[0]?.id || null;
+  }
+  return before - workspace.conversations.length;
 }
 
 function bindButtonClickIndicators() {

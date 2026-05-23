@@ -12,6 +12,7 @@ import {
 } from "./src/core/automationEngine.js";
 import {
   deleteBusinessConversationsFromSupabase,
+  deleteConversationsFromSupabase,
   loadWorkspaceFromSupabase,
   saveBusinessSettingsToSupabase,
   saveConversationToSupabase,
@@ -341,6 +342,10 @@ function upsertWorkspaceConversation(targetWorkspace, conversation) {
   targetWorkspace.conversations.unshift(conversation);
 }
 
+function isPilotConversation(conversation) {
+  return /^(api-pilot-|pilot-)/.test(conversation.id || "");
+}
+
 async function handleApi(request, response) {
   const url = new URL(request.url, `http://${request.headers.host}`);
 
@@ -469,6 +474,26 @@ async function handleApi(request, response) {
       sendJson(response, 200, { ok: true, conversation });
     } catch (error) {
       sendJson(response, error.statusCode || 400, { error: error.message || "Could not reset conversations" });
+    }
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/pilot-tests/cleanup") {
+    try {
+      const activeWorkspace = supabaseConfigured() ? await loadWorkspaceFromSupabase() : workspace;
+      const pilotConversationIds = activeWorkspace.conversations
+        .filter(isPilotConversation)
+        .map((conversation) => conversation.id);
+
+      if (supabaseConfigured()) {
+        await deleteConversationsFromSupabase(pilotConversationIds);
+      } else {
+        workspace.conversations = workspace.conversations.filter((conversation) => !pilotConversationIds.includes(conversation.id));
+      }
+
+      sendJson(response, 200, { ok: true, deleted: pilotConversationIds.length });
+    } catch (error) {
+      sendJson(response, error.statusCode || 400, { error: error.message || "Could not clear pilot tests" });
     }
     return;
   }
