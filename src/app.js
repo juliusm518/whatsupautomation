@@ -869,6 +869,14 @@ function bindEvents() {
   document.querySelector("#run-pilot-tests-button").addEventListener("click", async () => {
     state.busyAction = "pilot-tests";
     state.testSuite = {
+      status: "Refreshing",
+      summary: "Refreshing workspace before pilot checks...",
+      results: []
+    };
+    render();
+    await refreshWorkspaceFromServer();
+    state.busyAction = "pilot-tests";
+    state.testSuite = {
       status: "Running",
       summary: "Running pilot checks...",
       results: []
@@ -1389,12 +1397,14 @@ async function refreshWorkspaceFromServer() {
     showToast("Workspace refreshed from server", "success", { renderNow: false });
     saveWorkspace();
     render();
+    return true;
   } catch {
     state.syncStatus = "Local fallback";
     state.saveStatus = "Could not refresh from server";
     state.busyAction = "";
     showToast("Could not refresh from server", "error", { renderNow: false });
     render();
+    return false;
   }
 }
 
