@@ -743,6 +743,75 @@ h2 {
   line-height: 1.5;
 }
 
+.pilot-test-panel {
+  grid-column: 1 / -1;
+}
+
+.pilot-test-summary {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 14px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
+.pilot-test-summary span {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.pilot-test-results {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.pilot-test-result {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.pilot-test-result.passed {
+  border-color: rgba(15, 143, 101, 0.32);
+  background: #f3fbf7;
+}
+
+.pilot-test-result.failed {
+  border-color: rgba(232, 111, 95, 0.35);
+  background: #fff7f3;
+}
+
+.pilot-test-result strong,
+.pilot-test-result span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pilot-test-result span {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.pilot-test-result small {
+  min-width: 54px;
+  color: var(--brand-dark);
+  font-weight: 900;
+  text-align: right;
+}
+
 .form-stack label,
 .faq-item label,
 .settings-form label,
@@ -1053,7 +1122,8 @@ h2 {
   .automation-grid,
   .settings-grid,
   .setup-checklist,
-  .scenario-grid {
+  .scenario-grid,
+  .pilot-test-results {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -1076,6 +1146,7 @@ h2 {
   .form-grid,
   .test-phone-row,
   .scenario-grid,
+  .pilot-test-results,
   .nav {
     grid-template-columns: 1fr;
   }
