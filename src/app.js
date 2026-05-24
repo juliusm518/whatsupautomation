@@ -276,8 +276,12 @@ function renderProspectDemo() {
         <div>
           <p class="eyebrow">Prospect Demo Mode</p>
           <h1>ReplyPilot business templates</h1>
+          <p class="demo-summary">Six ready-to-test WhatsApp automation templates for FAQ replies, lead capture, booking requests, and human escalation.</p>
         </div>
-        <a class="secondary-button demo-dashboard-link" href="#automation">${icons.user}<span>Dashboard</span></a>
+        <div class="demo-header-actions">
+          <button type="button" class="secondary-button" id="copy-demo-link-button">${icons.send}<span>Copy demo link</span></button>
+          <a class="secondary-button demo-dashboard-link" href="#automation">${icons.user}<span>Dashboard</span></a>
+        </div>
       </header>
 
       <section class="demo-status-panel">
@@ -1166,6 +1170,11 @@ function bindEvents() {
 }
 
 function bindProspectDemoEvents() {
+  document.querySelector("#copy-demo-link-button").addEventListener("click", async () => {
+    await copyDemoLink();
+    showToast("Demo link copied", "success");
+  });
+
   document.querySelector("#demo-run-pilot-tests-button").addEventListener("click", async () => {
     await runAllPilotTests("demo");
   });
@@ -1219,6 +1228,27 @@ function exportPilotReport(targetHash) {
   downloadPilotTestReport();
   showToast("Pilot test report exported", "success");
   location.hash = `#${targetHash}`;
+}
+
+async function copyDemoLink() {
+  const url = new URL(location.href);
+  url.hash = "demo";
+  const link = url.toString();
+
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(link);
+    return;
+  }
+
+  const textarea = document.createElement("textarea");
+  textarea.value = link;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  document.body.append(textarea);
+  textarea.select();
+  document.execCommand("copy");
+  textarea.remove();
 }
 
 function pilotChecksForBusiness(business) {

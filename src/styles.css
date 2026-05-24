@@ -348,6 +348,22 @@ textarea {
   min-height: 44px;
 }
 
+.demo-summary {
+  max-width: 760px;
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 1.02rem;
+  line-height: 1.5;
+}
+
+.demo-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .demo-status-panel,
 .demo-actions,
 .demo-template-grid {
@@ -1317,6 +1333,7 @@ h2 {
 
   .sidebar,
   .demo-header,
+  .demo-header-actions,
   .metrics,
   .automation-grid,
   .settings-grid,
