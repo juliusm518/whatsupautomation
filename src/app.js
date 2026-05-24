@@ -75,6 +75,7 @@ function render() {
   const analytics = getAnalytics(operationalConversations);
   const action = actionButtonState();
   const setupProgress = onboardingProgress(business, operationalConversations);
+  const activeView = dashboardViewFromHash();
 
   app.innerHTML = `
     ${toastMarkup()}
@@ -92,10 +93,9 @@ function render() {
       </select>
       <nav class="nav">
         <a href="#demo">${icons.send}<span>Demo</span></a>
+        <a href="#dashboard">${icons.chart}<span>Dashboard</span></a>
         <a href="#setup">${icons.shield}<span>Setup</span></a>
-        <a href="#inbox">${icons.message}<span>Inbox</span></a>
         <a href="#automation">${icons.bolt}<span>Automation</span></a>
-        <a href="#analytics">${icons.chart}<span>Analytics</span></a>
         <a href="#settings">${icons.user}<span>Settings</span></a>
       </nav>
       <div class="connection-card">
@@ -118,14 +118,14 @@ function render() {
         </div>
       </header>
 
-      <section class="metrics" id="analytics">
+      <section class="metrics view-section ${activeView === "dashboard" ? "" : "view-hidden"}" id="dashboard">
         ${metricCard("Auto replies", analytics.autoReplies, "+18% this week", "message")}
         ${metricCard("Qualified leads", analytics.leads, `${analytics.leadRate}% lead rate`, "bolt")}
         ${metricCard("Human escalations", analytics.escalations, "High intent protected", "shield")}
         ${metricCard("After-hours saves", analytics.afterHours, "Replies while closed", "clock")}
       </section>
 
-      <section class="panel setup-panel" id="setup">
+      <section class="panel setup-panel view-section ${activeView === "setup" ? "" : "view-hidden"}" id="setup">
         <div class="panel-header">
           <div>
             <p class="eyebrow">Pilot Onboarding</p>
@@ -136,7 +136,7 @@ function render() {
         ${onboardingChecklist(business, conversations)}
       </section>
 
-      <section class="workspace-grid" id="inbox">
+      <section class="workspace-grid view-section ${activeView === "dashboard" ? "" : "view-hidden"}" id="inbox">
         <div class="panel inbox-panel">
           <div class="panel-header">
             <div>
@@ -162,7 +162,7 @@ function render() {
         </div>
       </section>
 
-      <section class="automation-grid" id="automation">
+      <section class="automation-grid view-section ${activeView === "automation" ? "" : "view-hidden"}" id="automation">
         <div class="panel test-inbox-panel">
           <div class="panel-header">
             <div>
@@ -208,7 +208,7 @@ function render() {
         </div>
       </section>
 
-      <section class="settings-grid" id="settings">
+      <section class="settings-grid view-section ${activeView === "settings" ? "" : "view-hidden"}" id="settings">
         <div class="panel settings-panel">
           <div class="panel-header">
           <div>
@@ -311,6 +311,11 @@ function renderProspectDemo() {
   `;
 
   bindProspectDemoEvents();
+}
+
+function dashboardViewFromHash() {
+  const view = location.hash.replace("#", "");
+  return ["setup", "automation", "settings"].includes(view) ? view : "dashboard";
 }
 
 function metricCard(label, value, detail, icon) {

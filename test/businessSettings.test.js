@@ -27,6 +27,9 @@ test("dashboard includes editable business settings controls", async () => {
   assert.match(source, /refreshWorkspaceFromServer/);
   assert.match(source, /refresh-workspace-button/);
   assert.match(source, /Refreshing from server/);
+  assert.match(source, /dashboardViewFromHash/);
+  assert.match(source, /#dashboard/);
+  assert.match(source, /view-hidden/);
   assert.match(source, /Prospect Demo Mode/);
   assert.match(source, /Six ready-to-test WhatsApp automation templates/);
   assert.match(source, /copy-demo-link-button/);
@@ -117,6 +120,8 @@ test("dashboard styles the booking calendar preview", async () => {
   assert.match(styles, /\.conversation-item\.test-mode/);
   assert.match(styles, /\.test-mode-badge/);
   assert.match(styles, /\.conversation-labels/);
+  assert.match(styles, /\.view-hidden/);
+  assert.match(styles, /display: none/);
   assert.match(styles, /\.demo-shell/);
   assert.match(styles, /\.demo-template-grid/);
   assert.match(styles, /\.demo-template-card/);
