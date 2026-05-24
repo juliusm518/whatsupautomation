@@ -23,11 +23,6 @@ const state = {
   faqDirty: false,
   showPilotConversations: false,
   toast: null,
-  testPreview: {
-    status: "Ready",
-    question: "Hi, what is your schedule and can I book a trial lesson tomorrow?",
-    reply: ""
-  },
   testInbox: {
     status: "Ready",
     phone: "+65 9000 1122",
@@ -228,21 +223,10 @@ function render() {
         </div>
 
         <div class="panel settings-panel">
-          <div class="panel-header">
-            <div>
-              <p class="eyebrow">Reply Test</p>
-              <h2>Test customer message</h2>
-            </div>
-            <span class="pill">${state.testPreview.status}</span>
-          </div>
-          ${replyTestPanel(business)}
-        </div>
-
-        <div class="panel settings-panel">
           ${calendarPanel(business)}
         </div>
 
-        <div class="panel settings-panel">
+        <div class="panel settings-panel faq-settings-panel">
           <div class="panel-header">
             <div>
               <p class="eyebrow">Knowledge Settings</p>
@@ -506,28 +490,6 @@ function faqEditor(faq, index) {
         <textarea data-faq-index="${index}" rows="3">${faq.answer}</textarea>
       </label>
     </details>
-  `;
-}
-
-function replyTestPanel(business) {
-  const reply = state.testPreview.reply || "Run a test to see the exact reply customers will receive.";
-
-  return `
-    <form class="form-stack" id="reply-test-form">
-      <label>
-        Customer phone
-        <input name="from" value="+65 9000 1122" autocomplete="tel" />
-      </label>
-      <label>
-        Customer message
-        <textarea name="text" rows="4">${escapeHtml(state.testPreview.question)}</textarea>
-      </label>
-      <button type="submit" class="primary-button${buttonBusyClass("reply-test")}"${buttonBusyAria("reply-test")}>${icons.bolt}<span>${buttonBusyLabel("reply-test", "Test reply", "Testing...")}</span></button>
-    </form>
-    <div class="reply-preview">
-      <span>${business.name} reply</span>
-      <p>${escapeHtml(reply)}</p>
-    </div>
   `;
 }
 
@@ -886,42 +848,6 @@ function bindEvents() {
     state.saveStatus = "Refreshing from server...";
     render();
     await refreshWorkspaceFromServer();
-    location.hash = "settings";
-  });
-
-  document.querySelector("#reply-test-form").addEventListener("submit", async (event) => {
-    event.preventDefault();
-    state.busyAction = "reply-test";
-    const form = new FormData(event.currentTarget);
-    const business = currentBusiness();
-    const text = cleanValue(form.get("text"), state.testPreview.question);
-    state.testPreview = {
-      status: "Testing...",
-      question: text,
-      reply: "Generating the customer reply..."
-    };
-    render();
-
-    const result = await runServerSimulator({
-      business,
-      message: {
-        id: `conv-${crypto.randomUUID()}`,
-        from: cleanValue(form.get("from"), "+65 9000 1122"),
-        text
-      }
-    });
-
-    upsertLocalConversation(result.conversation);
-    state.activeConversationId = result.conversation.id;
-    state.testPreview = {
-      status: result.conversation.status.replace("-", " "),
-      question: text,
-      reply: getAssistantReply(result.conversation)
-    };
-    state.busyAction = "";
-    showToast("Reply test generated", "success", { renderNow: false });
-    saveWorkspace();
-    render();
     location.hash = "settings";
   });
 

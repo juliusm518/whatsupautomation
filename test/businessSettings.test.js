@@ -51,10 +51,10 @@ test("dashboard includes editable business settings controls", async () => {
   assert.match(source, /Test Mode/);
   assert.match(source, /currentInboxConversations/);
   assert.match(source, /inboxEmptyState/);
-  assert.match(source, /Reply Test/);
-  assert.match(source, /reply-test-form/);
-  assert.match(source, /Test reply/);
-  assert.match(source, /reply-preview/);
+  assert.doesNotMatch(source, /Reply Test/);
+  assert.doesNotMatch(source, /reply-test-form/);
+  assert.doesNotMatch(source, /reply-preview/);
+  assert.match(source, /faq-settings-panel/);
   assert.match(source, /Test inbox/);
   assert.match(source, /Message Testing/);
   assert.match(source, /Customer reply checks/);
@@ -123,6 +123,7 @@ test("dashboard styles the booking calendar preview", async () => {
   assert.match(styles, /\.scenario-grid/);
   assert.match(styles, /\.phone-chip/);
   assert.match(styles, /\.test-reply-card/);
+  assert.match(styles, /\.faq-settings-panel/);
   assert.match(styles, /\.test-mode-toggle/);
   assert.match(styles, /\.conversation-item\.test-mode/);
   assert.match(styles, /\.test-mode-badge/);
@@ -167,7 +168,7 @@ test("dashboard loads global button click feedback", async () => {
   assert.match(script, /Knowledge base saved/);
   assert.match(script, /Business settings saved/);
   assert.match(script, /Demo conversations reset/);
-  assert.match(script, /Reply test generated/);
+  assert.doesNotMatch(script, /reply-test-form/);
   assert.match(script, /Could not save knowledge base/);
   assert.match(styles, /button-clicked/);
 });
@@ -187,7 +188,7 @@ test("dashboard loads the pilot onboarding checklist", async () => {
   assert.match(script, /Server sync/);
   assert.match(script, /Edit profile/);
   assert.match(script, /Edit FAQs/);
-  assert.match(script, /Run test reply/);
+  assert.match(script, /Open test inbox/);
   assert.match(script, /Copy webhook URL/);
   assert.match(script, /Open Meta setup/);
   assert.match(script, /Refresh server/);

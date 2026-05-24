@@ -134,8 +134,7 @@ function bindChecklistActions() {
     }
 
     if (action === "run-reply-test") {
-      document.querySelector("#reply-test-form button[type='submit']")?.click();
-      location.hash = "settings";
+      location.hash = "automation";
       return;
     }
 
@@ -190,7 +189,7 @@ function onboardingItems() {
       detail: hasAssistantReply ? "A sample customer reply has been generated for this business." : "Run a test message before connecting a live number.",
       done: hasAssistantReply,
       actions: [
-        { label: "Run test reply", action: "run-reply-test" }
+        { label: "Open test inbox", action: "run-reply-test" }
       ]
     },
     {
