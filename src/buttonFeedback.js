@@ -15,10 +15,6 @@ document.addEventListener("click", (event) => {
 });
 
 document.addEventListener("submit", (event) => {
-  if (event.target.id === "reply-test-form") {
-    window.setTimeout(() => showToast("Reply test generated"), 700);
-  }
-
   if (event.target.id === "message-form") {
     window.setTimeout(() => showToast("Auto-reply generated"), 700);
   }
