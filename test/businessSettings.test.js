@@ -27,6 +27,13 @@ test("dashboard includes editable business settings controls", async () => {
   assert.match(source, /refreshWorkspaceFromServer/);
   assert.match(source, /refresh-workspace-button/);
   assert.match(source, /Refreshing from server/);
+  assert.match(source, /Prospect Demo Mode/);
+  assert.match(source, /demo-run-pilot-tests-button/);
+  assert.match(source, /demo-export-pilot-report-button/);
+  assert.match(source, /renderProspectDemo/);
+  assert.match(source, /bindProspectDemoEvents/);
+  assert.match(source, /demoBusinessCard/);
+  assert.match(source, /pilotResultSummary/);
   assert.match(source, /reset-conversations-button/);
   assert.match(source, /resetBusinessConversations/);
   assert.match(source, /Demo conversations reset/);
@@ -105,6 +112,11 @@ test("dashboard styles the booking calendar preview", async () => {
   assert.match(styles, /\.conversation-item\.test-mode/);
   assert.match(styles, /\.test-mode-badge/);
   assert.match(styles, /\.conversation-labels/);
+  assert.match(styles, /\.demo-shell/);
+  assert.match(styles, /\.demo-template-grid/);
+  assert.match(styles, /\.demo-template-card/);
+  assert.match(styles, /\.demo-status-panel/);
+  assert.match(styles, /\.demo-actions/);
   assert.match(styles, /\.pilot-test-panel/);
   assert.match(styles, /\.pilot-test-actions/);
   assert.match(styles, /\.pilot-test-results/);

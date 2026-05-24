@@ -57,8 +57,14 @@ const icons = {
 const app = document.querySelector("#app");
 render();
 refreshWorkspaceFromServer();
+window.addEventListener("hashchange", render);
 
 function render() {
+  if (location.hash === "#demo") {
+    renderProspectDemo();
+    return;
+  }
+
   const business = currentBusiness();
   const conversations = currentConversations();
   const operationalConversations = conversations.filter((conversation) => !isPilotConversation(conversation));
@@ -85,6 +91,7 @@ function render() {
         ${workspace.businesses.map((item) => `<option value="${item.id}" ${item.id === business.id ? "selected" : ""}>${item.name}</option>`).join("")}
       </select>
       <nav class="nav">
+        <a href="#demo">${icons.send}<span>Demo</span></a>
         <a href="#setup">${icons.shield}<span>Setup</span></a>
         <a href="#inbox">${icons.message}<span>Inbox</span></a>
         <a href="#automation">${icons.bolt}<span>Automation</span></a>
@@ -259,6 +266,49 @@ function render() {
   bindEvents();
 }
 
+function renderProspectDemo() {
+  const summary = pilotResultSummary();
+
+  app.innerHTML = `
+    ${toastMarkup()}
+    <main class="demo-shell">
+      <header class="demo-header">
+        <div>
+          <p class="eyebrow">Prospect Demo Mode</p>
+          <h1>ReplyPilot business templates</h1>
+        </div>
+        <a class="secondary-button demo-dashboard-link" href="#automation">${icons.user}<span>Dashboard</span></a>
+      </header>
+
+      <section class="demo-status-panel">
+        <div>
+          <span>Business templates</span>
+          <strong>${workspace.businesses.length}</strong>
+        </div>
+        <div>
+          <span>Pilot checks</span>
+          <strong>${summary.total ? `${summary.passed}/${summary.total}` : "Not run"}</strong>
+        </div>
+        <div>
+          <span>Status</span>
+          <strong>${state.testSuite.status}</strong>
+        </div>
+      </section>
+
+      <section class="demo-actions">
+        <button type="button" class="primary-button${buttonBusyClass("pilot-tests")}" id="demo-run-pilot-tests-button"${buttonBusyAria("pilot-tests")}>${icons.shield}<span>${buttonBusyLabel("pilot-tests", "Run pilot tests", "Running tests...")}</span></button>
+        <button type="button" class="secondary-button" id="demo-export-pilot-report-button">${icons.send}<span>Export report</span></button>
+      </section>
+
+      <section class="demo-template-grid">
+        ${workspace.businesses.map((business) => demoBusinessCard(business)).join("")}
+      </section>
+    </main>
+  `;
+
+  bindProspectDemoEvents();
+}
+
 function metricCard(label, value, detail, icon) {
   return `
     <article class="metric-card">
@@ -270,6 +320,39 @@ function metricCard(label, value, detail, icon) {
       </div>
     </article>
   `;
+}
+
+function demoBusinessCard(business) {
+  const results = state.testSuite.results.filter((result) => result.businessId === business.id);
+  const passed = results.filter((result) => result.ok).length;
+  const status = results.length ? `${passed}/${results.length} checks passed` : "Ready to test";
+  const profile = testScenarioProfile(business);
+
+  return `
+    <article class="demo-template-card">
+      <div class="demo-template-header">
+        <div>
+          <span>${escapeHtml(business.type)}</span>
+          <strong>${escapeHtml(business.name)}</strong>
+        </div>
+        <small>${escapeHtml(status)}</small>
+      </div>
+      <p>${escapeHtml(business.appointmentLabel || "appointment")} automation with FAQ replies, lead capture, booking handling, and human escalation.</p>
+      <div class="demo-template-checks">
+        <span>FAQ: ${escapeHtml(profile.faqPreview)}</span>
+        <span>Booking: ${escapeHtml(profile.bookingPreview)}</span>
+        <span>Escalation: Human handoff</span>
+      </div>
+    </article>
+  `;
+}
+
+function pilotResultSummary() {
+  const passed = state.testSuite.results.filter((result) => result.ok).length;
+  return {
+    passed,
+    total: state.testSuite.results.length
+  };
 }
 
 function onboardingProgress(business, conversations) {
@@ -899,37 +982,7 @@ function bindEvents() {
   });
 
   document.querySelector("#run-pilot-tests-button").addEventListener("click", async () => {
-    state.busyAction = "pilot-tests";
-    state.testSuite = {
-      status: "Refreshing",
-      summary: "Refreshing workspace before pilot checks...",
-      results: []
-    };
-    render();
-    await refreshWorkspaceFromServer();
-    state.busyAction = "pilot-tests";
-    state.testSuite = {
-      status: "Running",
-      summary: "Running pilot checks...",
-      results: []
-    };
-    render();
-
-    const results = [];
-    for (const [businessIndex, business] of workspace.businesses.entries()) {
-      for (const check of pilotChecksForBusiness(business)) {
-        const result = await runPilotCheck({ business, check, businessIndex });
-        results.push(result);
-        state.testSuite = testSuiteStateFromResults(results, false);
-        render();
-      }
-    }
-
-    state.busyAction = "";
-    state.testSuite = testSuiteStateFromResults(results, true);
-    showToast(state.testSuite.summary, results.every((result) => result.ok) ? "success" : "error", { renderNow: false });
-    render();
-    location.hash = "automation";
+    await runAllPilotTests("automation");
   });
 
   document.querySelector("#clear-pilot-tests-button").addEventListener("click", async () => {
@@ -970,15 +1023,7 @@ function bindEvents() {
   });
 
   document.querySelector("#export-pilot-report-button").addEventListener("click", () => {
-    if (!state.testSuite.results.length) {
-      showToast("Run pilot tests before exporting a report", "error");
-      location.hash = "automation";
-      return;
-    }
-
-    downloadPilotTestReport();
-    showToast("Pilot test report exported", "success");
-    location.hash = "automation";
+    exportPilotReport("automation");
   });
 
   document.querySelector("#seed-message-button").addEventListener("click", () => {
@@ -1118,6 +1163,62 @@ function bindEvents() {
       saveWorkspace();
     });
   });
+}
+
+function bindProspectDemoEvents() {
+  document.querySelector("#demo-run-pilot-tests-button").addEventListener("click", async () => {
+    await runAllPilotTests("demo");
+  });
+
+  document.querySelector("#demo-export-pilot-report-button").addEventListener("click", () => {
+    exportPilotReport("demo");
+  });
+}
+
+async function runAllPilotTests(targetHash) {
+  state.busyAction = "pilot-tests";
+  state.testSuite = {
+    status: "Refreshing",
+    summary: "Refreshing workspace before pilot checks...",
+    results: []
+  };
+  render();
+  await refreshWorkspaceFromServer();
+  state.busyAction = "pilot-tests";
+  state.testSuite = {
+    status: "Running",
+    summary: "Running pilot checks...",
+    results: []
+  };
+  render();
+
+  const results = [];
+  for (const [businessIndex, business] of workspace.businesses.entries()) {
+    for (const check of pilotChecksForBusiness(business)) {
+      const result = await runPilotCheck({ business, check, businessIndex });
+      results.push(result);
+      state.testSuite = testSuiteStateFromResults(results, false);
+      render();
+    }
+  }
+
+  state.busyAction = "";
+  state.testSuite = testSuiteStateFromResults(results, true);
+  showToast(state.testSuite.summary, results.every((result) => result.ok) ? "success" : "error", { renderNow: false });
+  render();
+  location.hash = `#${targetHash}`;
+}
+
+function exportPilotReport(targetHash) {
+  if (!state.testSuite.results.length) {
+    showToast("Run pilot tests before exporting a report", "error");
+    location.hash = `#${targetHash}`;
+    return;
+  }
+
+  downloadPilotTestReport();
+  showToast("Pilot test report exported", "success");
+  location.hash = `#${targetHash}`;
 }
 
 function pilotChecksForBusiness(business) {
