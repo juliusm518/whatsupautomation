@@ -499,6 +499,10 @@ h2 {
   gap: 16px;
 }
 
+.view-hidden {
+  display: none;
+}
+
 .metrics {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   margin-bottom: 16px;
