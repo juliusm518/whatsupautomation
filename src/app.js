@@ -597,6 +597,7 @@ function pilotTestPanel() {
     </div>
     <div class="pilot-test-actions">
       <button type="button" class="primary-button${buttonBusyClass("pilot-tests")}" id="run-pilot-tests-button"${buttonBusyAria("pilot-tests")}>${icons.shield}<span>${buttonBusyLabel("pilot-tests", "Run pilot tests", "Running tests...")}</span></button>
+      <button type="button" class="secondary-button" id="export-pilot-report-button">${icons.send}<span>Export report</span></button>
       <button type="button" class="secondary-button${buttonBusyClass("pilot-cleanup")}" id="clear-pilot-tests-button"${buttonBusyAria("pilot-cleanup")}>${icons.reset}<span>${buttonBusyLabel("pilot-cleanup", "Clear pilot tests", "Clearing...")}</span></button>
     </div>
     <div class="pilot-test-results">
@@ -968,6 +969,18 @@ function bindEvents() {
     location.hash = "automation";
   });
 
+  document.querySelector("#export-pilot-report-button").addEventListener("click", () => {
+    if (!state.testSuite.results.length) {
+      showToast("Run pilot tests before exporting a report", "error");
+      location.hash = "automation";
+      return;
+    }
+
+    downloadPilotTestReport();
+    showToast("Pilot test report exported", "success");
+    location.hash = "automation";
+  });
+
   document.querySelector("#seed-message-button").addEventListener("click", () => {
     const business = currentBusiness();
     const samples = [
@@ -1168,6 +1181,47 @@ function testSuiteStateFromResults(results, complete) {
     summary: complete ? `${passed}/${total} pilot checks passed` : `${passed}/${total} checks passing so far`,
     results
   };
+}
+
+function buildPilotTestReport() {
+  const results = state.testSuite.results;
+  const passed = results.filter((result) => result.ok).length;
+  const generatedAt = new Intl.DateTimeFormat("en-SG", {
+    dateStyle: "medium",
+    timeStyle: "short"
+  }).format(new Date());
+  const businessNames = [...new Set(results.map((result) => result.businessName))];
+  const lines = [
+    "ReplyPilot Pilot Test Report",
+    `Generated: ${generatedAt}`,
+    `Status: ${state.testSuite.status}`,
+    `Summary: ${passed}/${results.length} checks passed`,
+    `Business templates: ${businessNames.length}`,
+    "",
+    "Covered checks:",
+    ...businessNames.flatMap((businessName) => [
+      "",
+      businessName,
+      ...results
+        .filter((result) => result.businessName === businessName)
+        .map((result) => `- ${result.kind}: ${result.ok ? "Pass" : "Needs review"} (${result.detail})`)
+    ])
+  ];
+
+  return `${lines.join("\n")}\n`;
+}
+
+function downloadPilotTestReport() {
+  const report = buildPilotTestReport();
+  const blob = new Blob([report], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `replypilot-pilot-test-report-${new Date().toISOString().slice(0, 10)}.txt`;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
 }
 
 function isPilotConversation(conversation) {

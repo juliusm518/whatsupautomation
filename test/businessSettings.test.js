@@ -53,6 +53,11 @@ test("dashboard includes editable business settings controls", async () => {
   assert.match(source, /Test results/);
   assert.match(source, /run-pilot-tests-button/);
   assert.match(source, /Run pilot tests/);
+  assert.match(source, /export-pilot-report-button/);
+  assert.match(source, /Export report/);
+  assert.match(source, /buildPilotTestReport/);
+  assert.match(source, /downloadPilotTestReport/);
+  assert.match(source, /ReplyPilot Pilot Test Report/);
   assert.match(source, /clear-pilot-tests-button/);
   assert.match(source, /Clear pilot tests/);
   assert.match(source, /clearPilotTestConversations/);
