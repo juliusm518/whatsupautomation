@@ -163,6 +163,14 @@ function render() {
       </section>
 
       <section class="automation-grid view-section ${activeView === "automation" ? "" : "view-hidden"}" id="automation">
+        <div class="automation-section-header">
+          <div>
+            <p class="eyebrow">Message Testing</p>
+            <h2>Customer reply checks</h2>
+          </div>
+          <span class="pill">${state.testInbox.status}</span>
+        </div>
+
         <div class="panel test-inbox-panel">
           <div class="panel-header">
             <div>
@@ -184,16 +192,12 @@ function render() {
           ${automationSettings(business)}
         </div>
 
-        <div class="panel faq-panel">
-          <div class="panel-header">
-            <div>
-              <p class="eyebrow">FAQ Answering</p>
-              <h2>Knowledge base</h2>
-            </div>
+        <div class="automation-section-header pilot-validation-header">
+          <div>
+            <p class="eyebrow">Pilot Validation</p>
+            <h2>Template test suite</h2>
           </div>
-          <div class="faq-list">
-            ${business.faqs.map((faq, index) => faqEditor(faq, index)).join("")}
-          </div>
+          <span class="pill">${state.testSuite.status}</span>
         </div>
 
         <div class="panel pilot-test-panel">
