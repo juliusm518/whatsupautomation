@@ -87,11 +87,11 @@ function render() {
         ${workspace.businesses.map((item) => `<option value="${item.id}" ${item.id === business.id ? "selected" : ""}>${item.name}</option>`).join("")}
       </select>
       <nav class="nav">
-        <a href="#demo">${icons.send}<span>Demo</span></a>
         <a href="#dashboard">${icons.chart}<span>Dashboard</span></a>
         <a href="#setup">${icons.shield}<span>Setup</span></a>
-        <a href="#automation">${icons.bolt}<span>Automation</span></a>
+        <a href="#automation">${icons.bolt}<span>Testing</span></a>
         <a href="#settings">${icons.user}<span>Settings</span></a>
+        <a href="#demo" class="nav-secondary">${icons.send}<span>Demo</span></a>
       </nav>
       <div class="connection-card">
         <span class="status-dot"></span>
