@@ -27,6 +27,9 @@ test("dashboard includes editable business settings controls", async () => {
   assert.match(source, /refreshWorkspaceFromServer/);
   assert.match(source, /refresh-workspace-button/);
   assert.match(source, /Refreshing from server/);
+  assert.match(source, /Test workspace active/);
+  assert.match(source, /WhatsApp number:/);
+  assert.doesNotMatch(source, /WhatsApp sandbox connected/);
   assert.match(source, /dashboardViewFromHash/);
   assert.match(source, /#dashboard/);
   assert.match(source, />Testing</);

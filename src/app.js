@@ -96,8 +96,8 @@ function render() {
       <div class="connection-card">
         <span class="status-dot"></span>
         <div>
-          <strong>WhatsApp sandbox connected</strong>
-          <small>${business.whatsappNumber}</small>
+          <strong>Test workspace active</strong>
+          <small>WhatsApp number: ${business.whatsappNumber}</small>
         </div>
       </div>
     </aside>
