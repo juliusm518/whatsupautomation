@@ -35,6 +35,13 @@ test("dashboard includes editable business settings controls", async () => {
   assert.match(source, />Testing</);
   assert.match(source, /nav-secondary/);
   assert.match(source, /view-hidden/);
+  assert.match(source, /integrationStatusPanel/);
+  assert.match(source, /Integration Status/);
+  assert.match(source, /Readiness overview/);
+  assert.match(source, /Test workspace/);
+  assert.match(source, /Google Calendar/);
+  assert.match(source, /WhatsApp Cloud API/);
+  assert.match(source, /Production readiness/);
   assert.match(source, /Prospect Demo Mode/);
   assert.match(source, /Six ready-to-test WhatsApp automation templates/);
   assert.match(source, /copy-demo-link-button/);
@@ -136,6 +143,10 @@ test("dashboard styles the booking calendar preview", async () => {
   assert.match(styles, /\.view-hidden/);
   assert.match(styles, /display: none/);
   assert.match(styles, /\.nav-secondary/);
+  assert.match(styles, /\.integration-status-panel/);
+  assert.match(styles, /\.integration-status-grid/);
+  assert.match(styles, /\.integration-status-item\.ready/);
+  assert.match(styles, /\.integration-status-item\.pending/);
   assert.match(styles, /\.demo-shell/);
   assert.match(styles, /\.demo-template-grid/);
   assert.match(styles, /\.demo-template-card/);
