@@ -8,6 +8,8 @@ services:
     envVars:
       - key: NODE_VERSION
         value: 22
+      - key: APP_BASE_URL
+        value: https://replypilot-whatsapp-automation.onrender.com
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY

@@ -22,6 +22,7 @@ const state = {
   busyAction: "",
   faqDirty: false,
   showPilotConversations: false,
+  setupStatus: null,
   toast: null,
   testInbox: {
     status: "Ready",
@@ -52,6 +53,7 @@ const icons = {
 const app = document.querySelector("#app");
 render();
 refreshWorkspaceFromServer();
+refreshSetupStatus();
 window.addEventListener("hashchange", render);
 
 function render() {
@@ -380,30 +382,49 @@ function onboardingChecklist(business, conversations) {
 function integrationStatusPanel(business) {
   const calendar = calendarForBusiness(business);
   const serverSynced = /synced|ready|saved/i.test(`${state.syncStatus} ${state.saveStatus}`);
+  const setup = state.setupStatus;
+  const checking = setup === null;
+  const supabaseReady = Boolean(setup?.supabase?.configured);
+  const googleReady = Boolean(setup?.googleCalendar?.configured);
+  const whatsAppReady = Boolean(setup?.whatsApp?.configured);
+  const hostedReady = Boolean(setup?.hostedUrl?.configured);
+  const productionReady = Boolean(setup?.productionReady);
   const integrations = [
     {
       label: "Test workspace",
-      status: serverSynced ? "Active" : "Local fallback",
-      detail: serverSynced ? "Dashboard data is synced with the server." : "Refresh from server before final testing.",
+      status: checking ? "Checking" : supabaseReady ? "Persisted" : serverSynced ? "Server active" : "Local fallback",
+      detail: supabaseReady
+        ? "Supabase persistence is configured for dashboard data."
+        : serverSynced
+          ? "Server is running; Supabase persistence is not configured."
+          : "Refresh from server before final testing.",
       ready: serverSynced
     },
     {
       label: "Google Calendar",
-      status: calendar.connected ? "Connected" : "Not connected",
-      detail: calendar.connected ? `${calendar.calendarId || "Primary calendar"} is used for availability checks.` : "Attach a calendar before live booking.",
-      ready: calendar.connected
+      status: checking ? "Checking" : calendar.connected && googleReady ? "Connected" : calendar.connected ? "Calendar selected" : "Not connected",
+      detail: calendar.connected && googleReady
+        ? `${calendar.calendarId || "Primary calendar"} is used for live availability checks.`
+        : calendar.connected
+          ? "Calendar is selected, but Google credentials are not configured on the server."
+          : "Attach a calendar before live booking.",
+      ready: calendar.connected && googleReady
     },
     {
       label: "WhatsApp Cloud API",
-      status: "Setup needed",
-      detail: "Meta webhook, phone number ID, and access token still need production confirmation.",
-      ready: false
+      status: checking ? "Checking" : whatsAppReady ? "Configured" : "Setup needed",
+      detail: whatsAppReady
+        ? "Meta verify token, access token, and phone number ID are configured."
+        : "Meta webhook verify token, phone number ID, and access token are still needed.",
+      ready: whatsAppReady
     },
     {
       label: "Production readiness",
-      status: "Pilot mode",
-      detail: "Use testing tools until Meta connection and domain setup are complete.",
-      ready: false
+      status: checking ? "Checking" : productionReady ? "Ready" : "Pilot mode",
+      detail: productionReady
+        ? "Hosted app, Supabase, Google Calendar, and WhatsApp are configured."
+        : readinessGapSummary({ supabaseReady, googleReady, whatsAppReady, hostedReady }),
+      ready: productionReady
     }
   ];
 
@@ -428,6 +449,19 @@ function integrationStatusPanel(business) {
       </div>
     </div>
   `;
+}
+
+function readinessGapSummary({ supabaseReady, googleReady, whatsAppReady, hostedReady }) {
+  const missing = [
+    !supabaseReady && "Supabase",
+    !googleReady && "Google credentials",
+    !whatsAppReady && "WhatsApp credentials",
+    !hostedReady && "hosted app URL"
+  ].filter(Boolean);
+
+  return missing.length
+    ? `Waiting on ${missing.join(", ")} before live production.`
+    : "Refresh status before live production.";
 }
 
 function onboardingItems(business, conversations) {
@@ -902,6 +936,7 @@ function bindEvents() {
     state.saveStatus = "Refreshing from server...";
     render();
     await refreshWorkspaceFromServer();
+    await refreshSetupStatus();
     location.hash = "settings";
   });
 
@@ -1690,6 +1725,39 @@ async function refreshWorkspaceFromServer() {
     state.saveStatus = "Could not refresh from server";
     state.busyAction = "";
     showToast("Could not refresh from server", "error", { renderNow: false });
+    render();
+    return false;
+  }
+}
+
+async function refreshSetupStatus() {
+  if (location.protocol === "file:") {
+    return false;
+  }
+
+  try {
+    const response = await fetch("/api/setup/status", {
+      headers: {
+        accept: "application/json"
+      },
+      cache: "no-store"
+    });
+
+    if (!response.ok) {
+      throw new Error("Setup status API failed");
+    }
+
+    state.setupStatus = await response.json();
+    render();
+    return true;
+  } catch {
+    state.setupStatus = {
+      supabase: { configured: false },
+      googleCalendar: { configured: false },
+      whatsApp: { configured: false },
+      hostedUrl: { configured: false },
+      productionReady: false
+    };
     render();
     return false;
   }

@@ -22,10 +22,12 @@ import {
 import {
   extractWhatsAppMessages,
   sendWhatsAppText,
-  verifyWhatsAppWebhook
+  verifyWhatsAppWebhook,
+  whatsappCloudConfigured
 } from "./src/integrations/whatsappCloud.js";
 import {
   createGoogleCalendarBooking,
+  googleCalendarConfigured,
   hydrateBusinessCalendarBusyWindows
 } from "./src/integrations/googleCalendar.js";
 
@@ -346,6 +348,64 @@ function isPilotConversation(conversation) {
   return /^(api-pilot-|pilot-)/.test(conversation.id || "");
 }
 
+function envPresent(name) {
+  return Boolean(String(process.env[name] || "").trim());
+}
+
+function hostedUrlForRequest(request) {
+  const configuredUrl = String(process.env.APP_BASE_URL || process.env.PUBLIC_APP_URL || process.env.RENDER_EXTERNAL_URL || "").trim();
+  if (configuredUrl) {
+    return configuredUrl;
+  }
+
+  const hostHeader = String(request.headers["x-forwarded-host"] || request.headers.host || "").trim();
+  if (!hostHeader) {
+    return "";
+  }
+
+  const protocol = String(request.headers["x-forwarded-proto"] || "https").split(",")[0].trim() || "https";
+  return `${protocol}://${hostHeader}`;
+}
+
+function hostedUrlConfigured(request) {
+  const hostedUrl = hostedUrlForRequest(request);
+  return Boolean(hostedUrl && !/^(https?:\/\/)?(localhost|127\.0\.0\.1|0\.0\.0\.0)(:|\/|$)/i.test(hostedUrl));
+}
+
+function setupStatusForRequest(request) {
+  const googleReady = googleCalendarConfigured(process.env);
+  const whatsAppReady = whatsappCloudConfigured(process.env);
+  const supabaseReady = supabaseConfigured();
+  const hostedReady = hostedUrlConfigured(request);
+
+  return {
+    ok: true,
+    supabase: {
+      configured: supabaseReady,
+      url: envPresent("SUPABASE_URL"),
+      serviceRoleKey: envPresent("SUPABASE_SERVICE_ROLE_KEY")
+    },
+    googleCalendar: {
+      configured: googleReady,
+      accessToken: envPresent("GOOGLE_CALENDAR_ACCESS_TOKEN"),
+      refreshToken: envPresent("GOOGLE_CALENDAR_REFRESH_TOKEN"),
+      clientCredentials: envPresent("GOOGLE_CALENDAR_CLIENT_ID") && envPresent("GOOGLE_CALENDAR_CLIENT_SECRET")
+    },
+    whatsApp: {
+      configured: whatsAppReady,
+      verifyToken: envPresent("WHATSAPP_VERIFY_TOKEN"),
+      accessToken: envPresent("WHATSAPP_ACCESS_TOKEN"),
+      phoneNumberId: envPresent("WHATSAPP_PHONE_NUMBER_ID"),
+      businessId: envPresent("WHATSAPP_BUSINESS_ID")
+    },
+    hostedUrl: {
+      configured: hostedReady,
+      appBaseUrl: envPresent("APP_BASE_URL") || envPresent("PUBLIC_APP_URL") || envPresent("RENDER_EXTERNAL_URL")
+    },
+    productionReady: supabaseReady && googleReady && whatsAppReady && hostedReady
+  };
+}
+
 async function handleApi(request, response) {
   const url = new URL(request.url, `http://${request.headers.host}`);
 
@@ -362,6 +422,11 @@ async function handleApi(request, response) {
     }
 
     sendJson(response, 200, workspace);
+    return;
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/setup/status") {
+    sendJson(response, 200, setupStatusForRequest(request));
     return;
   }
 
