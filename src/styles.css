@@ -526,6 +526,62 @@ h2 {
   gap: 12px;
 }
 
+.integration-status-panel {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.integration-status-header {
+  margin-bottom: 12px;
+}
+
+.integration-status-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.integration-status-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+  min-height: 112px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.integration-status-item.ready {
+  border-color: rgba(15, 143, 101, 0.32);
+  background: #f3fbf7;
+}
+
+.integration-status-item.pending {
+  border-color: rgba(247, 185, 85, 0.46);
+  background: #fffaf0;
+}
+
+.integration-status-item strong,
+.integration-status-item span {
+  display: block;
+}
+
+.integration-status-item span {
+  margin-top: 6px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.integration-status-item small {
+  color: var(--brand-dark);
+  font-weight: 900;
+  text-align: right;
+  white-space: nowrap;
+}
+
 .setup-step {
   display: flex;
   align-items: flex-start;
@@ -1321,6 +1377,7 @@ h2 {
   .automation-grid,
   .settings-grid,
   .setup-checklist,
+  .integration-status-grid,
   .scenario-grid,
   .demo-template-grid,
   .pilot-test-results {
@@ -1345,6 +1402,7 @@ h2 {
   .automation-grid,
   .settings-grid,
   .setup-checklist,
+  .integration-status-grid,
   .form-grid,
   .test-phone-row,
   .scenario-grid,

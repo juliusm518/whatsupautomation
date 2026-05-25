@@ -129,6 +129,7 @@ function render() {
           <span class="pill">${setupProgress.done}/${setupProgress.total} ready</span>
         </div>
         ${onboardingChecklist(business, conversations)}
+        ${integrationStatusPanel(business)}
       </section>
 
       <section class="workspace-grid view-section ${activeView === "dashboard" ? "" : "view-hidden"}" id="inbox">
@@ -372,6 +373,59 @@ function onboardingChecklist(business, conversations) {
           </div>
         </article>
       `).join("")}
+    </div>
+  `;
+}
+
+function integrationStatusPanel(business) {
+  const calendar = calendarForBusiness(business);
+  const serverSynced = /synced|ready|saved/i.test(`${state.syncStatus} ${state.saveStatus}`);
+  const integrations = [
+    {
+      label: "Test workspace",
+      status: serverSynced ? "Active" : "Local fallback",
+      detail: serverSynced ? "Dashboard data is synced with the server." : "Refresh from server before final testing.",
+      ready: serverSynced
+    },
+    {
+      label: "Google Calendar",
+      status: calendar.connected ? "Connected" : "Not connected",
+      detail: calendar.connected ? `${calendar.calendarId || "Primary calendar"} is used for availability checks.` : "Attach a calendar before live booking.",
+      ready: calendar.connected
+    },
+    {
+      label: "WhatsApp Cloud API",
+      status: "Setup needed",
+      detail: "Meta webhook, phone number ID, and access token still need production confirmation.",
+      ready: false
+    },
+    {
+      label: "Production readiness",
+      status: "Pilot mode",
+      detail: "Use testing tools until Meta connection and domain setup are complete.",
+      ready: false
+    }
+  ];
+
+  return `
+    <div class="integration-status-panel">
+      <div class="integration-status-header">
+        <div>
+          <p class="eyebrow">Integration Status</p>
+          <h2>Readiness overview</h2>
+        </div>
+      </div>
+      <div class="integration-status-grid">
+        ${integrations.map((item) => `
+          <article class="integration-status-item ${item.ready ? "ready" : "pending"}">
+            <div>
+              <strong>${escapeHtml(item.label)}</strong>
+              <span>${escapeHtml(item.detail)}</span>
+            </div>
+            <small>${escapeHtml(item.status)}</small>
+          </article>
+        `).join("")}
+      </div>
     </div>
   `;
 }
