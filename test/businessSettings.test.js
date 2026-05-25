@@ -36,6 +36,13 @@ test("dashboard includes editable business settings controls", async () => {
   assert.match(source, /nav-secondary/);
   assert.match(source, /view-hidden/);
   assert.match(source, /integrationStatusPanel/);
+  assert.match(source, /setupStatus/);
+  assert.match(source, /refreshSetupStatus/);
+  assert.match(source, /\/api\/setup\/status/);
+  assert.match(source, /readinessGapSummary/);
+  assert.match(source, /Supabase persistence is configured/);
+  assert.match(source, /Google credentials are not configured/);
+  assert.match(source, /Meta verify token, access token, and phone number ID/);
   assert.match(source, /Integration Status/);
   assert.match(source, /Readiness overview/);
   assert.match(source, /Test workspace/);
@@ -235,7 +242,29 @@ test("server persists business settings for reply generation", async () => {
   assert.match(source, /sanitizeFaqs/);
   assert.match(source, /hydrateBusinessCalendarBusyWindows/);
   assert.match(source, /hydrateBusinessCalendarForIncoming/);
+  assert.match(source, /setupStatusForRequest/);
+  assert.match(source, /\/api\/setup\/status/);
+  assert.match(source, /whatsappCloudConfigured/);
+  assert.match(source, /googleCalendarConfigured/);
+  assert.match(source, /hostedUrlConfigured/);
+  assert.match(source, /productionReady/);
   assert.doesNotMatch(source, /booking-confirmed/);
+});
+
+test("server exposes safe setup readiness flags", async () => {
+  const server = await readFile(new URL("../server.js", import.meta.url), "utf8");
+  const whatsapp = await readFile(new URL("../src/integrations/whatsappCloud.js", import.meta.url), "utf8");
+
+  assert.match(whatsapp, /export function whatsappCloudConfigured/);
+  assert.match(server, /supabase:\s*{/);
+  assert.match(server, /googleCalendar:\s*{/);
+  assert.match(server, /whatsApp:\s*{/);
+  assert.match(server, /hostedUrl:\s*{/);
+  assert.match(server, /serviceRoleKey: envPresent/);
+  assert.match(server, /accessToken: envPresent/);
+  assert.doesNotMatch(server, /SUPABASE_SERVICE_ROLE_KEY[^)]*\|\|/);
+  assert.doesNotMatch(server, /WHATSAPP_ACCESS_TOKEN[^)]*\|\|/);
+  assert.doesNotMatch(server, /GOOGLE_CALENDAR_REFRESH_TOKEN[^)]*\|\|/);
 });
 
 test("server seeds missing Supabase pilot templates from code defaults", async () => {

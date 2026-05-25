@@ -1,5 +1,9 @@
 const DEFAULT_GRAPH_VERSION = "v20.0";
 
+export function whatsappCloudConfigured(env = process.env) {
+  return Boolean(env.WHATSAPP_VERIFY_TOKEN && env.WHATSAPP_ACCESS_TOKEN && env.WHATSAPP_PHONE_NUMBER_ID);
+}
+
 export function verifyWhatsAppWebhook(url, verifyToken) {
   const mode = url.searchParams.get("hub.mode");
   const token = url.searchParams.get("hub.verify_token");
